@@ -12,7 +12,7 @@ export const inputHandler = {
     turnLeft: false,
     turnRight: false,
     front: false,
-    back: false,
+    back: false
 };
 
 window.onkeydown = (e) => {

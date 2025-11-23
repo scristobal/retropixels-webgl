@@ -65,13 +65,14 @@ async function renderer(canvasElement: HTMLCanvasElement) {
     const sprite = await spriteSheet(animationData);
 
     const timeTracker = timeTrack();
-    const screen = screenManager(1, gl.getParameter(gl.MAX_TEXTURE_SIZE), canvasElement);
+    const screen = screenManager(5, gl.getParameter(gl.MAX_TEXTURE_SIZE), canvasElement);
 
     let spriteModelTransform: Float32Array;
     let spriteTextureTransform: Float32Array;
 
     // globals
-    gl.enable(gl.CULL_FACE);
+    // gl.enable(gl.CULL_FACE);
+    gl.cullFace(gl.BACK);
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.BLEND);
     gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
@@ -125,10 +126,10 @@ async function renderer(canvasElement: HTMLCanvasElement) {
     // biome-ignore format: custom matrix alignment
     const spriteVerticesData = new Float32Array([
     //    x   y     z  u  v
-          0,  0, -100, 0, 0,
-         34,  0, -100, 1, 0,
-          0, 34, -100, 0, 1,
-         34, 34, -100, 1, 1,
+          0,  0, 50, 0, 1,
+         34,  0, 50, 1, 1,
+          0, 34, 50, 0, 0,
+         34, 34, 50, 1, 0,
     ]);
 
     const spriteVerticesBuffer = gl.createBuffer();
@@ -176,6 +177,8 @@ async function renderer(canvasElement: HTMLCanvasElement) {
 
     let resize = false;
 
+    let cameraAngle = 0;
+
     function update() {
         const delta = timeTracker();
 
@@ -190,12 +193,26 @@ async function renderer(canvasElement: HTMLCanvasElement) {
         if (inputHandler.back) movement.moveBack(delta);
         if (inputHandler.front) movement.moveFront(delta);
 
+        cameraAngle += 0.01;
+
         sprite.update(delta);
 
-        spriteModelTransform = m4()
-            // .projection(screen.quadResolution[0], screen.quadResolution[1], 100)
-            .perspective(60, screen.quadResolution[0]/screen.quadResolution[0], 1, 1000)
-            .translate(movement.center).rotate(movement.axis, movement.angle).data;
+        // biome-ignore format: matrix pipeoperations
+        const camera = m4()
+            .identity
+            .rotate(new Float32Array([0,1,0]), cameraAngle)
+            .translate(new Float32Array([0, 0, 200]));
+
+        const view = camera.inverse.data;
+
+        // biome-ignore format: matrix pipeoperations
+        const viewProjection = m4()
+            .perspective(60, screen.quadResolution[0] / screen.quadResolution[0], 1, 1000)
+            .multiply(view);
+
+        const modelMatrix = viewProjection.translate(movement.center).rotate(movement.axis, movement.rotation);
+
+        spriteModelTransform = modelMatrix.data;
         spriteTextureTransform = sprite.transform;
     }
 
@@ -211,7 +228,7 @@ async function renderer(canvasElement: HTMLCanvasElement) {
         }
 
         // 1st pass draw sprite on quad
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, quadFrameBuffer);
         gl.viewport(0, 0, screen.quadResolution[0], screen.quadResolution[1]);
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -224,18 +241,18 @@ async function renderer(canvasElement: HTMLCanvasElement) {
         gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
 
         // 2nd pass draw quad on screen
-        // gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        // gl.viewport(0, 0, screen.canvasResolution[0], screen.canvasResolution[1]);
-        // gl.clearColor(0, 0, 0, 1);
-        // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        //
-        // gl.useProgram(quadProgram);
-        //
-        // // Bind depth texture instead of color texture
-        // // gl.activeTexture(gl.TEXTURE1);
-        // // gl.bindTexture(gl.TEXTURE_2D, depthTexture);
-        //
-        // gl.drawArrays(gl.TRIANGLE_STRIP, 0, 5);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.viewport(0, 0, screen.canvasResolution[0], screen.canvasResolution[1]);
+        gl.clearColor(0, 0, 0, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        gl.useProgram(quadProgram);
+
+        // Bind depth texture instead of color texture
+        // gl.activeTexture(gl.TEXTURE1);
+        // gl.bindTexture(gl.TEXTURE_2D, depthTexture);
+
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 5);
     }
 
     return function gameLoop() {

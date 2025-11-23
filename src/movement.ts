@@ -32,10 +32,10 @@ export function createMovement(state: State) {
             this.angle -= this.rotation * dt;
         },
         moveBack(dt: number) {
-            this.center[2] += this.speed[2] * dt;    
+            this.center[2] += this.speed[2] * dt;
         },
         moveFront(dt: number) {
-            this.center[2] -= this.speed[2] * dt;    
+            this.center[2] -= this.speed[2] * dt;
         }
     };
 }
