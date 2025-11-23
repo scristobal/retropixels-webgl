@@ -30,6 +30,12 @@ export function createMovement(state: State) {
         },
         rotateCounterClockWise(dt: number) {
             this.angle -= this.rotation * dt;
+        },
+        moveBack(dt: number) {
+            this.center[2] += this.speed[2] * dt;    
+        },
+        moveFront(dt: number) {
+            this.center[2] -= this.speed[2] * dt;    
         }
     };
 }

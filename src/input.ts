@@ -10,7 +10,9 @@ export const inputHandler = {
     left: false,
     right: false,
     turnLeft: false,
-    turnRight: false
+    turnRight: false,
+    front: false,
+    back: false,
 };
 
 window.onkeydown = (e) => {
@@ -36,6 +38,12 @@ window.onkeydown = (e) => {
             break;
         case 'e':
             inputHandler.turnRight = true;
+            break;
+        case 'r':
+            inputHandler.back = true;
+            break;
+        case 'f':
+            inputHandler.front = true;
             break;
     }
 };
@@ -63,6 +71,12 @@ window.onkeyup = (e) => {
             break;
         case 'e':
             inputHandler.turnRight = false;
+            break;
+        case 'r':
+            inputHandler.back = false;
+            break;
+        case 'f':
+            inputHandler.front = false;
             break;
     }
 };

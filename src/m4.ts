@@ -29,15 +29,15 @@ export function m4() {
             return this;
         },
         perspective(yFov: number, aspect: number, zNear: number, zFar: number) {
-            const f = Math.tan(0.5 * (Math.PI - (Math.PI * yFov) / 180));
+            const f = Math.tan(0.5 * (Math.PI - ( yFov * Math.PI / 180) ));
             const rInv = 1 / (zNear - zFar);
 
             // biome-ignore format: custom matrix alignment
             this.data = new Float32Array([
-                f / aspect, 0,                   0,  0,
-                         0, f,                   0,  0,
-                         0, 0,         zFar * rInv, -1,
-                         0, 0, zNear * zFar * rInv,  0
+                f / aspect, 0,                       0,  0,
+                         0, f,                       0,  0,
+                         0, 0,   (zNear + zFar) * rInv, -1,
+                         0, 0, 2 * zNear * zFar * rInv,  0
             ]);
 
             return this;
