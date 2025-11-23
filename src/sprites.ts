@@ -18,7 +18,7 @@ type Atlas = {
     frames: { [n: string]: Frame };
 };
 
-export async function spriteSheet(atlas: Atlas, scale: number) {
+export async function spriteSheet(atlas: Atlas) {
     const bitmap = await loadImageBitmap(atlas.url);
     const imgData = await loadImageData(bitmap);
     if (!imgData) throw 'Failed to load sprite sheet';
@@ -34,8 +34,6 @@ export async function spriteSheet(atlas: Atlas, scale: number) {
         bitmap,
         imgData,
         transform: new Float32Array(16),
-        factor: new Float32Array(3),
-        scale: scale,
 
         _currentFrameTime: 0,
         _currentFrameName: Object.keys(atlas.frames)[0],
@@ -53,8 +51,13 @@ export async function spriteSheet(atlas: Atlas, scale: number) {
                 const tx = this._currentSprite.location[0] / this._imgSize[0];
                 const ty = this._currentSprite.location[1] / this._imgSize[1];
 
-                //                 |           |            |             |           |
-                this.transform.set([dx, 0, 0, 0, 0, dy, 0, 0, tx, ty, 1, 0, 0, 0, 0, 0]);
+                // biome-ignore format: custom matrix alignment
+                this.transform.set([
+                    dx,  0, 0, 0,
+                     0, dy, 0, 0,
+                    tx, ty, 1, 0,
+                     0,  0, 0, 0
+                ]);
             }
         },
 
@@ -72,15 +75,13 @@ export async function spriteSheet(atlas: Atlas, scale: number) {
 
         get sheetSize() {
             return { width: this._imgSize[0], height: this._imgSize[1] };
-        },
-
-        rescale(resolution: Float32Array) {
-            this.factor = new Float32Array([(this.scale * this.spriteSize[0]) / resolution[0], (this.scale * this.spriteSize[1]) / resolution[1], 1]);
         }
     };
 }
 
 // bitmaps do not get GC'd
 const bitmapRegistry = new FinalizationRegistry((token) => {
-    if (token instanceof ImageBitmap) token.close();
+    if (token instanceof ImageBitmap) {
+        token.close();
+    }
 });

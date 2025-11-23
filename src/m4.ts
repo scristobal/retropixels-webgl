@@ -3,9 +3,6 @@
 //
 // usage:
 //  m4().identity.scale(s).translate(v).rotate(r,a).data;
-//
-//
-//
 
 export function m4() {
     return {
@@ -18,6 +15,16 @@ export function m4() {
                 0, 1, 0, 0,
                 0, 0, 1, 0,
                 0, 0, 0, 1
+            ]);
+            return this;
+        },
+        projection: function (width: number, height: number, depth: number) {
+            // biome-ignore format: custom matrix alignment
+            this.data.set([
+                2 / width,           0,         0, 0,
+                        0, -2 / height,         0, 0,
+                        0,           0, 2 / depth, 0,
+                       -1,           1,         0, 1
             ]);
             return this;
         },

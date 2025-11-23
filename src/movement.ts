@@ -20,10 +20,10 @@ export function createMovement(state: State) {
             this.center[0] -= this.speed[0] * dt;
         },
         moveUp(dt: number) {
-            this.center[1] += this.speed[1] * dt;
+            this.center[1] -= this.speed[1] * dt;
         },
         moveDown(dt: number) {
-            this.center[1] -= this.speed[1] * dt;
+            this.center[1] += this.speed[1] * dt;
         },
         rotateClockWise(dt: number) {
             this.angle += this.rotation * dt;

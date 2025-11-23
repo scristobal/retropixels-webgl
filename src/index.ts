@@ -62,10 +62,10 @@ async function renderer(canvasElement: HTMLCanvasElement) {
         angle: 0,
         rotation: 0.01
     });
-    const sprite = await spriteSheet(animationData, 10);
+    const sprite = await spriteSheet(animationData);
 
     const timeTracker = timeTrack();
-    const screen = screenManager(1, gl.getParameter(gl.MAX_TEXTURE_SIZE), canvasElement);
+    const screen = screenManager(10, gl.getParameter(gl.MAX_TEXTURE_SIZE), canvasElement);
 
     let spriteModelTransform: Float32Array;
     let spriteTextureTransform: Float32Array;
@@ -118,17 +118,17 @@ async function renderer(canvasElement: HTMLCanvasElement) {
 
     // vertices array object (vao)- position and texture coordinates
     //
-    //  3--0
+    //  0--1
     //  |  |
-    //  2--1
+    //  2--3
     //
     // biome-ignore format: custom matrix alignment
     const spriteVerticesData = new Float32Array([
-    //   x   y  z  u  v
-         1,  1, 0, 1, 0,
-         1, -1, 0, 1, 1,
-        -1, -1, 0, 0, 1,
-        -1,  1, 0, 0, 0
+    //    x   y  z  u  v
+          0,  0, 10, 0, 0,
+         34,  0, 10, 1, 0,
+          0, 34, 10, 0, 1,
+         34, 34, 10, 1, 1,
     ]);
 
     const spriteVerticesBuffer = gl.createBuffer();
@@ -143,16 +143,16 @@ async function renderer(canvasElement: HTMLCanvasElement) {
 
     // vao - indexing
     //
-    //  3 - - - 0
+    //  0 - - - 1
     //  | A   / |
     //  |   /   |
     //  | /   B |
-    //  2 - - - 1
+    //  2 - - - 3
     //
     // biome-ignore format: custom matrix alignment
     const spriteIndicesData = new Uint16Array([
-        3, 2, 0, 
-        2, 1, 0
+        0, 2, 1, 
+        1, 2, 3
     ]);
 
     const spriteIndicesBuffer = gl.createBuffer();
@@ -181,7 +181,6 @@ async function renderer(canvasElement: HTMLCanvasElement) {
 
         resize = screen.needsResize;
 
-        // movement system affects the position of the model
         if (inputHandler.right) movement.moveRight(delta);
         if (inputHandler.left) movement.moveLeft(delta);
         if (inputHandler.up) movement.moveUp(delta);
@@ -189,14 +188,9 @@ async function renderer(canvasElement: HTMLCanvasElement) {
         if (inputHandler.turnRight) movement.rotateClockWise(delta);
         if (inputHandler.turnLeft) movement.rotateCounterClockWise(delta);
 
-        // sprite system affects the animation
         sprite.update(delta);
 
-        if (resize) {
-            sprite.rescale(screen.canvasResolution);
-        }
-
-        spriteModelTransform = m4().identity.scale(sprite.factor).translate(movement.center).rotate(movement.axis, movement.angle).data;
+        spriteModelTransform = m4().projection(screen.quadResolution[0], screen.quadResolution[1], 100).translate(movement.center).rotate(movement.axis, movement.angle).data;
         spriteTextureTransform = sprite.transform;
     }
 
