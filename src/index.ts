@@ -57,22 +57,23 @@ async function renderer(canvasElement: HTMLCanvasElement) {
 
     const movement = createMovement({
         center: [0, 0, 0],
-        speed: [0.2, 0.2, 0.2],
-        axis: [1, 0, 1],
+        speed: [0.002, 0.002, 0.002],
+        axis: [1, 0, 0],
         angle: 0,
         rotation: 0.01
     });
+
     const sprite = await spriteSheet(animationData);
 
     const timeTracker = timeTrack();
-    const screen = screenManager(5, gl.getParameter(gl.MAX_TEXTURE_SIZE), canvasElement);
+    const screen = screenManager(10, gl.getParameter(gl.MAX_TEXTURE_SIZE), canvasElement);
 
     let spriteModelTransform: Float32Array;
     let spriteTextureTransform: Float32Array;
 
     // globals
     // gl.enable(gl.CULL_FACE);
-    gl.cullFace(gl.BACK);
+    // gl.cullFace(gl.BACK);
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.BLEND);
     gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
@@ -117,19 +118,25 @@ async function renderer(canvasElement: HTMLCanvasElement) {
     const spriteVerticesCoordsLocation = gl.getAttribLocation(spriteProgram, 'a_coord');
     const spriteVerticesTextureCoordsLocation = gl.getAttribLocation(spriteProgram, 'a_texCoord');
 
-    // vertices array object (vao)- position and texture coordinates
     //
-    //  0--1
-    //  |  |
-    //  2--3
+    //  3 - - - 0
+    //  | A   / |
+    //  |   /   |
+    //  | /   B |
+    //  2 - - - 1
     //
     // biome-ignore format: custom matrix alignment
     const spriteVerticesData = new Float32Array([
-    //    x   y     z  u  v
-          0,  0, 50, 0, 1,
-         34,  0, 50, 1, 1,
-          0, 34, 50, 0, 0,
-         34, 34, 50, 1, 0,
+    //    x   y  z  u  v
+          1,  1, 0, 1, 0, // 0
+          1, -1, 0, 1, 1, // 1
+         -1, -1, 0, 0, 1, // 2
+         -1,  1, 0, 0, 0  // 3
+    ]);
+    // biome-ignore format: custom matrix alignment
+    const spriteIndicesData = new Uint16Array([
+        3, 2, 0, // A
+        2, 1, 0  // B
     ]);
 
     const spriteVerticesBuffer = gl.createBuffer();
@@ -141,20 +148,6 @@ async function renderer(canvasElement: HTMLCanvasElement) {
 
     gl.enableVertexAttribArray(spriteVerticesTextureCoordsLocation);
     gl.vertexAttribPointer(spriteVerticesTextureCoordsLocation, 2, gl.FLOAT, false, 3 * 4 + 2 * 4, 3 * 4);
-
-    // vao - indexing
-    //
-    //  0 - - - 1
-    //  | A   / |
-    //  |   /   |
-    //  | /   B |
-    //  2 - - - 3
-    //
-    // biome-ignore format: custom matrix alignment
-    const spriteIndicesData = new Uint16Array([
-        0, 1, 2,
-        1, 3, 2
-    ]);
 
     const spriteIndicesBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, spriteIndicesBuffer);
@@ -201,16 +194,21 @@ async function renderer(canvasElement: HTMLCanvasElement) {
         const camera = m4()
             .identity
             .rotate(new Float32Array([0,1,0]), cameraAngle)
-            .translate(new Float32Array([0, 0, 200]));
+            .translate(new Float32Array([0, 0, 100]));
 
         const view = camera.inverse.data;
 
-        // biome-ignore format: matrix pipeoperations
+        // biome-ignore format: matrix pipe operations
         const viewProjection = m4()
             .perspective(60, screen.quadResolution[0] / screen.quadResolution[0], 1, 1000)
             .multiply(view);
 
-        const modelMatrix = viewProjection.translate(movement.center).rotate(movement.axis, movement.rotation);
+        // biome-ignore format: matrix pipe operations
+        const modelMatrix = viewProjection
+            .scale(new Float32Array([34, 34, 0]))
+            .translate(new Float32Array([1, 0, 0]))
+            .translate(movement.center)
+            .rotate(movement.axis, movement.angle);
 
         spriteModelTransform = modelMatrix.data;
         spriteTextureTransform = sprite.transform;
@@ -243,7 +241,7 @@ async function renderer(canvasElement: HTMLCanvasElement) {
         // 2nd pass draw quad on screen
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.viewport(0, 0, screen.canvasResolution[0], screen.canvasResolution[1]);
-        gl.clearColor(0, 0, 0, 1);
+        gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
         gl.useProgram(quadProgram);
