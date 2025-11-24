@@ -1,26 +1,24 @@
 #version 300 es
 
-vec2 v_coords[5] = vec2[](
-    vec2(-1.0, 1.0),
-    vec2(-1.0, -1.0),
-    vec2(1.0, -1.0),
-    vec2(1.0, 1.0),
-    vec2(-1.0, 1.0)
-);
-
-vec2 v_texCoords[5] = vec2[](
-    vec2(0.0, 1.0),
-    vec2(0.0, 0.0),
-    vec2(1.0, 0.0),
-    vec2(1.0, 1.0),
-    vec2(0.0, 1.0)
+// Triangle strip
+//
+//  A - - - C
+//  | 1   / |
+//  |   /   |
+//  | /   2 |
+//  B - - - D
+//
+vec4 v_vertData[4] = vec4[](
+//          x     y    u    v
+    vec4(-1.0,  1.0, 0.0, 1.0),   // A
+    vec4(-1.0, -1.0, 0.0, 0.0),   // B
+    vec4( 1.0,  1.0, 1.0, 1.0),   // C
+    vec4( 1.0, -1.0, 1.0, 0.0)    // D
 );
 
 out vec2 v_texCoord;
 
 void main() {
-    vec2 coords = vec2(v_coords[gl_VertexID].x, v_coords[gl_VertexID].y);
-
-    gl_Position = vec4(coords, 0.0, 1.0);
-    v_texCoord = v_texCoords[gl_VertexID];
+    gl_Position = vec4(v_vertData[gl_VertexID].xy, 0.0, 1.0);
+    v_texCoord = v_vertData[gl_VertexID].zw;
 }

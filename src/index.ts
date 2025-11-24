@@ -56,17 +56,35 @@ async function renderer(canvasElement: HTMLCanvasElement) {
     if (!gl) throw 'WebGL2 not supported in this browser';
 
     const movement = createMovement({
-        center: [0, 0, 0],
-        speed: [0.002, 0.002, 0.002],
-        axis: [1, 0, 0],
-        angle: 0,
-        rotation: 0.01
+        location: { center: [0, 0, 0], speed: [0.002, 0.002, 0.2] },
+        rotation: { axis: [0, 0, 1], angle: 0, speed: 0.01 }
     });
 
     const sprite = await spriteSheet(animationData);
 
     const timeTracker = timeTrack();
     const screen = screenManager(10, gl.getParameter(gl.MAX_TEXTURE_SIZE), canvasElement);
+
+    //
+    //  0 - - - 1
+    //  | A   / |
+    //  |   /   |
+    //  | /   B |
+    //  2 - - - 3
+    //
+    // biome-ignore format: custom matrix alignment
+    const spriteVerticesData = new Float32Array([
+    //    x   y  z  u  v
+         -1,  1, 0, 0, 0, // 0
+          1,  1, 0, 1, 0, // 1
+         -1, -1, 0, 0, 1, // 2
+          1, -1, 0, 1, 1, // 3
+    ]);
+    // biome-ignore format: custom matrix alignment
+    const spriteIndicesData = new Uint16Array([
+        0, 2, 1, // A
+        1, 2, 3  // B
+    ]);
 
     let spriteModelTransform: Float32Array;
     let spriteTextureTransform: Float32Array;
@@ -78,7 +96,43 @@ async function renderer(canvasElement: HTMLCanvasElement) {
     gl.enable(gl.BLEND);
     gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
-    // 2nd pass program, render to a quad
+    // 1st pass program, animated sprite
+    const spriteProgram = createProgram(gl, spriteVertexShaderCode, spriteFragmentShaderCode);
+    gl.useProgram(spriteProgram);
+
+    const spriteVerticesCoordsLocation = gl.getAttribLocation(spriteProgram, 'a_coord');
+    const spriteVerticesTextureCoordsLocation = gl.getAttribLocation(spriteProgram, 'a_texCoord');
+
+    const spriteVerticesBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, spriteVerticesBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, spriteVerticesData, gl.STATIC_DRAW);
+
+    gl.enableVertexAttribArray(spriteVerticesCoordsLocation);
+    gl.vertexAttribPointer(spriteVerticesCoordsLocation, 3, gl.FLOAT, false, 3 * 4 + 2 * 4, 0);
+
+    gl.enableVertexAttribArray(spriteVerticesTextureCoordsLocation);
+    gl.vertexAttribPointer(spriteVerticesTextureCoordsLocation, 2, gl.FLOAT, false, 3 * 4 + 2 * 4, 3 * 4);
+
+    const spriteIndicesBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, spriteIndicesBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, spriteIndicesData, gl.STATIC_DRAW);
+
+    const spriteModelTransformUniformLocation = gl.getUniformLocation(spriteProgram, 'u_modelTransform');
+    const spriteTextureTransformUniformLocation = gl.getUniformLocation(spriteProgram, 'u_texTransform');
+    const spriteColorTextureUniformLocation = gl.getUniformLocation(spriteProgram, 'u_texColor');
+
+    gl.uniform1i(spriteColorTextureUniformLocation, 0);
+
+    gl.activeTexture(gl.TEXTURE0);
+    const spriteTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, spriteTexture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, sprite.sheetSize.width, sprite.sheetSize.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, sprite.imgData);
+
+    // 2nd pass program, (low) resolution scaling
     const quadProgram = createProgram(gl, quadVertexShaderCode, quadFragmentShaderCode);
     gl.useProgram(quadProgram);
 
@@ -111,66 +165,9 @@ async function renderer(canvasElement: HTMLCanvasElement) {
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, quadTexture, 0);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthTexture, 0);
 
-    // 1st pass program, animated sprite
-    const spriteProgram = createProgram(gl, spriteVertexShaderCode, spriteFragmentShaderCode);
-    gl.useProgram(spriteProgram);
-
-    const spriteVerticesCoordsLocation = gl.getAttribLocation(spriteProgram, 'a_coord');
-    const spriteVerticesTextureCoordsLocation = gl.getAttribLocation(spriteProgram, 'a_texCoord');
-
-    //
-    //  3 - - - 0
-    //  | A   / |
-    //  |   /   |
-    //  | /   B |
-    //  2 - - - 1
-    //
-    // biome-ignore format: custom matrix alignment
-    const spriteVerticesData = new Float32Array([
-    //    x   y  z  u  v
-          1,  1, 0, 1, 0, // 0
-          1, -1, 0, 1, 1, // 1
-         -1, -1, 0, 0, 1, // 2
-         -1,  1, 0, 0, 0  // 3
-    ]);
-    // biome-ignore format: custom matrix alignment
-    const spriteIndicesData = new Uint16Array([
-        3, 2, 0, // A
-        2, 1, 0  // B
-    ]);
-
-    const spriteVerticesBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, spriteVerticesBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, spriteVerticesData, gl.STATIC_DRAW);
-
-    gl.enableVertexAttribArray(spriteVerticesCoordsLocation);
-    gl.vertexAttribPointer(spriteVerticesCoordsLocation, 3, gl.FLOAT, false, 3 * 4 + 2 * 4, 0);
-
-    gl.enableVertexAttribArray(spriteVerticesTextureCoordsLocation);
-    gl.vertexAttribPointer(spriteVerticesTextureCoordsLocation, 2, gl.FLOAT, false, 3 * 4 + 2 * 4, 3 * 4);
-
-    const spriteIndicesBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, spriteIndicesBuffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, spriteIndicesData, gl.STATIC_DRAW);
-
-    const spriteModelTransformUniformLocation = gl.getUniformLocation(spriteProgram, 'u_modelTransform');
-    const spriteTextureTransformUniformLocation = gl.getUniformLocation(spriteProgram, 'u_texTransform');
-    const spriteColorTextureUniformLocation = gl.getUniformLocation(spriteProgram, 'u_texColor');
-
-    gl.uniform1i(spriteColorTextureUniformLocation, 0);
-
-    gl.activeTexture(gl.TEXTURE0);
-    const spriteTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, spriteTexture);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, sprite.sheetSize.width, sprite.sheetSize.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, sprite.imgData);
-
     let resize = false;
 
-    let cameraAngle = 0;
+    let cameraDistance = 1000;
 
     function update() {
         const delta = timeTracker();
@@ -186,27 +183,27 @@ async function renderer(canvasElement: HTMLCanvasElement) {
         if (inputHandler.back) movement.moveBack(delta);
         if (inputHandler.front) movement.moveFront(delta);
 
-        cameraAngle += 0.01;
-
         sprite.update(delta);
+
+        cameraDistance -= 1;
+
+        cameraDistance = Math.max(cameraDistance, 100);
 
         // biome-ignore format: matrix pipeoperations
         const camera = m4()
             .identity
-            .rotate(new Float32Array([0,1,0]), cameraAngle)
-            .translate(new Float32Array([0, 0, 100]));
+            .translate(new Float32Array([0, 0, cameraDistance]));
 
         const view = camera.inverse.data;
 
         // biome-ignore format: matrix pipe operations
         const viewProjection = m4()
-            .perspective(60, screen.quadResolution[0] / screen.quadResolution[0], 1, 1000)
+            .perspective(60, screen.quadResolution[0] / screen.quadResolution[1], 1, 1000)
             .multiply(view);
 
         // biome-ignore format: matrix pipe operations
         const modelMatrix = viewProjection
-            .scale(new Float32Array([34, 34, 0]))
-            .translate(new Float32Array([1, 0, 0]))
+            .scale(new Float32Array([34, 34, 1]))
             .translate(movement.center)
             .rotate(movement.axis, movement.angle);
 
@@ -250,7 +247,7 @@ async function renderer(canvasElement: HTMLCanvasElement) {
         // gl.activeTexture(gl.TEXTURE1);
         // gl.bindTexture(gl.TEXTURE_2D, depthTexture);
 
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 5);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
 
     return function gameLoop() {

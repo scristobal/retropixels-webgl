@@ -18,7 +18,7 @@ export function m4() {
             ]);
             return this;
         },
-        projection: function (width: number, height: number, depth: number) {
+        _projection: function (width: number, height: number, depth: number) {
             // biome-ignore format: custom matrix alignment
             this.data.set([
                 2 / width,           0,         0, 0,
@@ -110,14 +110,47 @@ export function m4() {
             ]);
             return this;
         },
-        rotate(u: Float32Array, rd: number) {
+        _rotateX(rd: number) {
             const c = Math.cos(rd);
             const s = Math.sin(rd);
             // biome-ignore format: custom matrix alignment
             this.op.set([
-                u[0] * u[0] * (1 - c) + c,        u[0] * u[1] * (1 - c) + u[2] * s, u[0] * u[2] * (1 - c) - u[1] * s, 0,
-                u[0] * u[1] * (1 - c) - u[2] * s,        u[1] * u[1] * (1 - c) + c, u[1] * u[2] * (1 - c) + u[0] * s, 0,
-                u[0] * u[2] * (1 - c) + u[1] * s, u[1] * u[2] * (1 - c) - u[0] * s,        u[2] * u[2] * (1 - c) + c, 0,
+                1,  0, 0,
+                0,  c, s,
+                0, -s, c
+            ])
+            return this.__apply();
+        },
+        _rotateY(rd: number) {
+            const c = Math.cos(rd);
+            const s = Math.sin(rd);
+            // biome-ignore format: custom matrix alignment
+            this.op.set([
+                c, 0, -s,
+                0, 1,  0,
+                s, 0,  c
+            ])
+            return this.__apply();
+        },
+        _rotateZ(rd: number) {
+            const c = Math.cos(rd);
+            const s = Math.sin(rd);
+            // biome-ignore format: custom matrix alignment
+            this.op.set([
+                 c, s, 0,
+                -s, c, 0,
+                 0, 0, 1
+            ])
+            return this.__apply();
+        },
+        rotate(a: Float32Array, rd: number) {
+            const c = Math.cos(rd);
+            const s = Math.sin(rd);
+            // biome-ignore format: custom matrix alignment
+            this.op.set([
+                a[0] * a[0] * (1 - c) + c,        a[0] * a[1] * (1 - c) + a[2] * s, a[0] * a[2] * (1 - c) - a[1] * s, 0,
+                a[0] * a[1] * (1 - c) - a[2] * s,        a[1] * a[1] * (1 - c) + c, a[1] * a[2] * (1 - c) + a[0] * s, 0,
+                a[0] * a[2] * (1 - c) + a[1] * s, a[1] * a[2] * (1 - c) - a[0] * s,        a[2] * a[2] * (1 - c) + c, 0,
                                                0,                                0,                                0, 1
             ]);
             return this.__apply();
