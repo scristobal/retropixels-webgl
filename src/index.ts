@@ -63,7 +63,7 @@ async function renderer(canvasElement: HTMLCanvasElement) {
     const sprite = await spriteSheet(animationData);
 
     const timeTracker = timeTrack();
-    const screen = screenManager(10, gl.getParameter(gl.MAX_TEXTURE_SIZE), canvasElement);
+    const screen = screenManager(1, gl.getParameter(gl.MAX_TEXTURE_SIZE), canvasElement);
 
     //
     //  0 - - - 1
@@ -167,7 +167,10 @@ async function renderer(canvasElement: HTMLCanvasElement) {
 
     let resize = false;
 
-    let cameraDistance = 1000;
+    const startCameraDistance = 1000;
+    const endCameraDistance = 100;
+    const transitionTime_s = 5;
+    let p = 0;
 
     function update() {
         const delta = timeTracker();
@@ -185,20 +188,19 @@ async function renderer(canvasElement: HTMLCanvasElement) {
 
         sprite.update(delta);
 
-        cameraDistance -= 1;
-
-        cameraDistance = Math.max(cameraDistance, 100);
+        const invCameraDistance = (1-p)/startCameraDistance + p/endCameraDistance;
+        p = Math.min(1, p+0.001);
 
         // biome-ignore format: matrix pipeoperations
         const camera = m4()
             .identity
-            .translate(new Float32Array([0, 0, cameraDistance]));
+            .translate(new Float32Array([0, 0, 1/invCameraDistance]));
 
         const view = camera.inverse.data;
 
         // biome-ignore format: matrix pipe operations
         const viewProjection = m4()
-            .perspective(60, screen.quadResolution[0] / screen.quadResolution[1], 1, 1000)
+            .perspective(60, screen.quadRatio, 1, 1000)
             .multiply(view);
 
         // biome-ignore format: matrix pipe operations

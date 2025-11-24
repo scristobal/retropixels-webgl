@@ -45,6 +45,10 @@ export function screenManager(scale: number, maxTextureDimension: number, canvas
             resizeFlag = false;
 
             return true;
+        },
+
+        get quadRatio() {
+            return this.quadResolution[0]/this.quadResolution[1];
         }
     };
 }
