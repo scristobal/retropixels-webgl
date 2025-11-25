@@ -83,7 +83,7 @@ async function renderer(canvasElement: HTMLCanvasElement) {
     // biome-ignore format: custom matrix alignment
     const spriteIndicesData = new Uint16Array([
         0, 2, 1, // A
-        1, 2, 3  // B
+        1, 2, 3, // B
     ]);
 
     let spriteModelTransform: Float32Array;
@@ -169,7 +169,6 @@ async function renderer(canvasElement: HTMLCanvasElement) {
 
     const startCameraDistance = 1000;
     const endCameraDistance = 100;
-    const transitionTime_s = 5;
     let p = 0;
 
     function update() {
@@ -188,8 +187,8 @@ async function renderer(canvasElement: HTMLCanvasElement) {
 
         sprite.update(delta);
 
-        const invCameraDistance = (1-p)/startCameraDistance + p/endCameraDistance;
-        p = Math.min(1, p+0.001);
+        const invCameraDistance = (1 - p) / startCameraDistance + p / endCameraDistance;
+        p = Math.min(1, p + 0.001);
 
         // biome-ignore format: matrix pipeoperations
         const camera = m4()
