@@ -1,261 +1,217 @@
-//
-// zero chain matrix operations
-//
-// usage:
-//  m4().identity.scale(s).translate(v).rotate(r,a).data;
+/// 3-dim homogeneus matrix operations
 
-export function m4() {
-    return {
-        data: new Float32Array(16),
-        op: new Float32Array(16),
-        get identity() {
-            // biome-ignore format: custom matrix alignment
-            this.data.set([
-                1, 0, 0, 0,
-                0, 1, 0, 0,
-                0, 0, 1, 0,
-                0, 0, 0, 1
-            ]);
-            return this;
-        },
-        _projection: function (width: number, height: number, depth: number) {
-            // biome-ignore format: custom matrix alignment
-            this.data.set([
-                2 / width,           0,         0, 0,
-                        0, -2 / height,         0, 0,
-                        0,           0, 2 / depth, 0,
-                       -1,           1,         0, 1
-            ]);
-            return this;
-        },
-        perspective(yFov: number, aspect: number, zNear: number, zFar: number) {
-            const f = Math.tan(0.5 * (Math.PI - (yFov * Math.PI) / 180));
-            const rInv = 1 / (zNear - zFar);
+export function identity() {
+    // biome-ignore format: custom matrix alignment
+    return new Float32Array([
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+    ]);
+}
 
-            // biome-ignore format: custom matrix alignment
-            this.data = new Float32Array([
-                f / aspect, 0,                       0,  0,
-                         0, f,                       0,  0,
-                         0, 0,   (zNear + zFar) * rInv, -1,
-                         0, 0, 2 * zNear * zFar * rInv,  0
-            ]);
+export function projection(width: number, height: number, depth: number) {
+    // biome-ignore format: custom matrix alignment
+    return new Float32Array([
+        2 / width,           0,         0, 0,
+                0, -2 / height,         0, 0,
+                0,           0, 2 / depth, 0,
+               -1,           1,         0, 1
+    ]);
+}
 
-            return this;
-        },
-        new(data: Float32Array) {
-            this.data.set(data);
-            return this;
-        },
-        __apply() {
-            const a00 = this.data[0],
-                a01 = this.data[1],
-                a02 = this.data[2],
-                a03 = this.data[3];
-            const a10 = this.data[4],
-                a11 = this.data[5],
-                a12 = this.data[6],
-                a13 = this.data[7];
-            const a20 = this.data[8],
-                a21 = this.data[9],
-                a22 = this.data[10],
-                a23 = this.data[11];
-            const a30 = this.data[12],
-                a31 = this.data[13],
-                a32 = this.data[14],
-                a33 = this.data[15];
+export function perspective(yFov: number, aspect: number, zNear: number, zFar: number) {
+    const f = Math.tan(0.5 * (Math.PI - (yFov * Math.PI) / 180));
+    const rInv = 1 / (zNear - zFar);
 
-            const b00 = this.op[0],
-                b01 = this.op[1],
-                b02 = this.op[2],
-                b03 = this.op[3];
-            const b10 = this.op[4],
-                b11 = this.op[5],
-                b12 = this.op[6],
-                b13 = this.op[7];
-            const b20 = this.op[8],
-                b21 = this.op[9],
-                b22 = this.op[10],
-                b23 = this.op[11];
-            const b30 = this.op[12],
-                b31 = this.op[13],
-                b32 = this.op[14],
-                b33 = this.op[15];
+    // biome-ignore format: custom matrix alignment
+    return new Float32Array([
+        f / aspect, 0,                       0,  0,
+                 0, f,                       0,  0,
+                 0, 0,   (zNear + zFar) * rInv, -1,
+                 0, 0, 2 * zNear * zFar * rInv,  0
+    ]);
+}
 
-            const c00 = a00 * b00 + a10 * b01 + a20 * b02 + a30 * b03;
-            const c01 = a01 * b00 + a11 * b01 + a21 * b02 + a31 * b03;
-            const c02 = a02 * b00 + a12 * b01 + a22 * b02 + a32 * b03;
-            const c03 = a03 * b00 + a13 * b01 + a23 * b02 + a33 * b03;
+export function rotationX(rd: number) {
+    const c = Math.cos(rd);
+    const s = Math.sin(rd);
+    // biome-ignore format: custom matrix alignment
+    return new Float32Array([
+        1,  0, 0, 0,
+        0,  c, s, 0,
+        0, -s, c, 0,
+        0,  0, 0, 1
+    ]);
+}
 
-            const c10 = a00 * b10 + a10 * b11 + a20 * b12 + a30 * b13;
-            const c11 = a01 * b10 + a11 * b11 + a21 * b12 + a31 * b13;
-            const c12 = a02 * b10 + a12 * b11 + a22 * b12 + a32 * b13;
-            const c13 = a03 * b10 + a13 * b11 + a23 * b12 + a33 * b13;
+export function rotationY(rd: number) {
+    const c = Math.cos(rd);
+    const s = Math.sin(rd);
+    // biome-ignore format: custom matrix alignment
+    return new Float32Array([
+        c, 0, -s, 0,
+        0, 1,  0, 0,
+        s, 0,  c, 0,
+        0, 0,  0, 1
+    ]);
+}
 
-            const c20 = a00 * b20 + a10 * b21 + a20 * b22 + a30 * b23;
-            const c21 = a01 * b20 + a11 * b21 + a21 * b22 + a31 * b23;
-            const c22 = a02 * b20 + a12 * b21 + a22 * b22 + a32 * b23;
-            const c23 = a03 * b20 + a13 * b21 + a23 * b22 + a33 * b23;
+export function rotationZ(rd: number) {
+    const c = Math.cos(rd);
+    const s = Math.sin(rd);
+    // biome-ignore format: custom matrix alignment
+    return new Float32Array([
+         c, s, 0, 0,
+        -s, c, 0, 0,
+         0, 0, 1, 0,
+         0, 0, 0, 1
+    ]);
+}
 
-            const c30 = a00 * b30 + a10 * b31 + a20 * b32 + a30 * b33;
-            const c31 = a01 * b30 + a11 * b31 + a21 * b32 + a31 * b33;
-            const c32 = a02 * b30 + a12 * b31 + a22 * b32 + a32 * b33;
-            const c33 = a03 * b30 + a13 * b31 + a23 * b32 + a33 * b33;
+export function rotation(a: Float32Array, rd: number) {
+    const c = Math.cos(rd);
+    const s = Math.sin(rd);
+    // biome-ignore format: custom matrix alignment
+    return new Float32Array([
+        a[0] * a[0] * (1 - c) + c,        a[0] * a[1] * (1 - c) + a[2] * s, a[0] * a[2] * (1 - c) - a[1] * s, 0,
+        a[0] * a[1] * (1 - c) - a[2] * s, a[1] * a[1] * (1 - c) + c,        a[1] * a[2] * (1 - c) + a[0] * s, 0,
+        a[0] * a[2] * (1 - c) + a[1] * s, a[1] * a[2] * (1 - c) - a[0] * s, a[2] * a[2] * (1 - c) + c,        0,
+        0,                                0,                                0,                                1
+    ]);
+}
 
-            // biome-ignore format: custom matrix alignment
-            this.data.set([
-                c00, c01, c02, c03,
-                c10, c11, c12, c13,
-                c20, c21, c22, c23,
-                c30, c31, c32, c33
-            ]);
-            return this;
-        },
-        _rotateX(rd: number) {
-            const c = Math.cos(rd);
-            const s = Math.sin(rd);
-            // biome-ignore format: custom matrix alignment
-            this.op.set([
-                1,  0, 0,
-                0,  c, s,
-                0, -s, c
-            ])
-            return this.__apply();
-        },
-        _rotateY(rd: number) {
-            const c = Math.cos(rd);
-            const s = Math.sin(rd);
-            // biome-ignore format: custom matrix alignment
-            this.op.set([
-                c, 0, -s,
-                0, 1,  0,
-                s, 0,  c
-            ])
-            return this.__apply();
-        },
-        _rotateZ(rd: number) {
-            const c = Math.cos(rd);
-            const s = Math.sin(rd);
-            // biome-ignore format: custom matrix alignment
-            this.op.set([
-                 c, s, 0,
-                -s, c, 0,
-                 0, 0, 1
-            ])
-            return this.__apply();
-        },
-        rotate(a: Float32Array, rd: number) {
-            const c = Math.cos(rd);
-            const s = Math.sin(rd);
-            // biome-ignore format: custom matrix alignment
-            this.op.set([
-                a[0] * a[0] * (1 - c) + c,        a[0] * a[1] * (1 - c) + a[2] * s, a[0] * a[2] * (1 - c) - a[1] * s, 0,
-                a[0] * a[1] * (1 - c) - a[2] * s,        a[1] * a[1] * (1 - c) + c, a[1] * a[2] * (1 - c) + a[0] * s, 0,
-                a[0] * a[2] * (1 - c) + a[1] * s, a[1] * a[2] * (1 - c) - a[0] * s,        a[2] * a[2] * (1 - c) + c, 0,
-                                               0,                                0,                                0, 1
-            ]);
-            return this.__apply();
-        },
-        scale(s: Float32Array) {
-            // biome-ignore format: custom matrix alignment
-            this.op.set([
-                s[0],    0,    0, 0,
-                   0, s[1],    0, 0,
-                   0,    0, s[2], 0,
-                   0,    0,    0, 1
-            ]);
-            return this.__apply();
-        },
-        translate(t: Float32Array) {
-            // biome-ignore format: custom matrix alignment
-            this.op.set([
-                   1,      0,      0, 0,
-                   0,      1,      0, 0,
-                   0,      0,      1, 0,
-                t[0],   t[1],   t[2], 1
-            ]);
-            return this.__apply();
-        },
-        multiply(rhs: Float32Array) {
-            this.op.set(rhs);
-            return this.__apply();
-        },
-        apply(vec: Float32Array) {
-            // biome-ignore format: custom matrix alignment
-            return new Float32Array([
-                vec[0] * this.data[0] + vec[1] * this.data[4] + vec[2] * this.data[ 8] + vec[3] * this.data[12],
-                vec[0] * this.data[1] + vec[1] * this.data[5] + vec[2] * this.data[ 9] + vec[3] * this.data[13],
-                vec[0] * this.data[2] + vec[1] * this.data[6] + vec[2] * this.data[10] + vec[3] * this.data[14],
-                vec[0] * this.data[3] + vec[1] * this.data[7] + vec[2] * this.data[11] + vec[3] * this.data[15],
-            ]);
-        },
-        get inverse() {
-            const a00 = this.data[0],
-                a01 = this.data[1],
-                a02 = this.data[2],
-                a03 = this.data[3];
-            const a10 = this.data[4],
-                a11 = this.data[5],
-                a12 = this.data[6],
-                a13 = this.data[7];
-            const a20 = this.data[8],
-                a21 = this.data[9],
-                a22 = this.data[10],
-                a23 = this.data[11];
-            const a30 = this.data[12],
-                a31 = this.data[13],
-                a32 = this.data[14],
-                a33 = this.data[15];
+export function scaling(f: Float32Array) {
+    // biome-ignore format: custom matrix alignment
+    return new Float32Array([
+        f[0],    0,    0, 0,
+           0, f[1],    0, 0,
+           0,    0, f[2], 0,
+           0,    0,    0, 1
+    ]);
+}
 
-            const b00 = a00 * a11 - a01 * a10;
-            const b01 = a00 * a12 - a02 * a10;
-            const b02 = a00 * a13 - a03 * a10;
-            const b03 = a01 * a12 - a02 * a11;
-            const b04 = a01 * a13 - a03 * a11;
-            const b05 = a02 * a13 - a03 * a12;
-            const b06 = a20 * a31 - a21 * a30;
-            const b07 = a20 * a32 - a22 * a30;
-            const b08 = a20 * a33 - a23 * a30;
-            const b09 = a21 * a32 - a22 * a31;
-            const b10 = a21 * a33 - a23 * a31;
-            const b11 = a22 * a33 - a23 * a32;
+export function translation(v: Float32Array) {
+    // biome-ignore format: custom matrix alignment
+    return new Float32Array([
+           1,    0,    0, 0,
+           0,    1,    0, 0,
+           0,    0,    1, 0,
+        v[0], v[1], v[2], 1
+    ]);
+}
 
-            const det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
+export function multiply(lhs: Float32Array, rhs: Float32Array, dst?: Float32Array) {
+    const t = dst || new Float32Array(16);
+    // biome-ignore format: custom matrix alignment
+    t.set([
+        lhs[0] * rhs[0] + lhs[4] * rhs[1] + lhs[8] * rhs[2] + lhs[12] * rhs[3],
+        lhs[1] * rhs[0] + lhs[5] * rhs[1] + lhs[9] * rhs[2] + lhs[13] * rhs[3],
+        lhs[2] * rhs[0] + lhs[6] * rhs[1] + lhs[10] * rhs[2] + lhs[14] * rhs[3],
+        lhs[3] * rhs[0] + lhs[7] * rhs[1] + lhs[11] * rhs[2] + lhs[15] * rhs[3],
 
-            if (Math.abs(det) < 1e-10) {
-                throw new Error('Matrix is not invertible (determinant is zero)');
-            }
+        lhs[0] * rhs[4] + lhs[4] * rhs[5] + lhs[8] * rhs[6] + lhs[12] * rhs[7],
+        lhs[1] * rhs[4] + lhs[5] * rhs[5] + lhs[9] * rhs[6] + lhs[13] * rhs[7],
+        lhs[2] * rhs[4] + lhs[6] * rhs[5] + lhs[10] * rhs[6] + lhs[14] * rhs[7],
+        lhs[3] * rhs[4] + lhs[7] * rhs[5] + lhs[11] * rhs[6] + lhs[15] * rhs[7],
 
-            const detInv = 1 / det;
+        lhs[0] * rhs[8] + lhs[4] * rhs[9] + lhs[8] * rhs[10] + lhs[12] * rhs[11],
+        lhs[1] * rhs[8] + lhs[5] * rhs[9] + lhs[9] * rhs[10] + lhs[13] * rhs[11],
+        lhs[2] * rhs[8] + lhs[6] * rhs[9] + lhs[10] * rhs[10] + lhs[14] * rhs[11],
+        lhs[3] * rhs[8] + lhs[7] * rhs[9] + lhs[11] * rhs[10] + lhs[15] * rhs[11],
 
-            const c00 = (a11 * b11 - a12 * b10 + a13 * b09) * detInv;
-            const c01 = (a02 * b10 - a01 * b11 - a03 * b09) * detInv;
-            const c02 = (a31 * b05 - a32 * b04 + a33 * b03) * detInv;
-            const c03 = (a22 * b04 - a21 * b05 - a23 * b03) * detInv;
+        lhs[0] * rhs[12] + lhs[4] * rhs[13] + lhs[8] * rhs[14] + lhs[12] * rhs[15],
+        lhs[1] * rhs[12] + lhs[5] * rhs[13] + lhs[9] * rhs[14] + lhs[13] * rhs[15],
+        lhs[2] * rhs[12] + lhs[6] * rhs[13] + lhs[10] * rhs[14] + lhs[14] * rhs[15],
+        lhs[3] * rhs[12] + lhs[7] * rhs[13] + lhs[11] * rhs[14] + lhs[15] * rhs[15]
+    ]);
+    return t;
+}
 
-            const c10 = (a12 * b08 - a10 * b11 - a13 * b07) * detInv;
-            const c11 = (a00 * b11 - a02 * b08 + a03 * b07) * detInv;
-            const c12 = (a32 * b02 - a30 * b05 - a33 * b01) * detInv;
-            const c13 = (a20 * b05 - a22 * b02 + a23 * b01) * detInv;
+export function inverse(m: Float32Array, dst?: Float32Array) {
+    const t = dst || new Float32Array(16);
 
-            const c20 = (a10 * b10 - a11 * b08 + a13 * b06) * detInv;
-            const c21 = (a01 * b08 - a00 * b10 - a03 * b06) * detInv;
-            const c22 = (a30 * b04 - a31 * b02 + a33 * b00) * detInv;
-            const c23 = (a21 * b02 - a20 * b04 - a23 * b00) * detInv;
+    const b = new Float32Array([
+        m[0] * m[5] - m[1] * m[4],
+        m[0] * m[6] - m[2] * m[4],
+        m[0] * m[7] - m[3] * m[4],
+        m[1] * m[6] - m[2] * m[5],
+        m[1] * m[7] - m[3] * m[5],
+        m[2] * m[7] - m[3] * m[6],
+        m[8] * m[13] - m[9] * m[12],
+        m[8] * m[14] - m[10] * m[12],
+        m[8] * m[15] - m[11] * m[12],
+        m[9] * m[14] - m[10] * m[13],
+        m[9] * m[15] - m[11] * m[13],
+        m[10] * m[15] - m[11] * m[14]
+    ]);
 
-            const c30 = (a11 * b07 - a10 * b09 - a12 * b06) * detInv;
-            const c31 = (a00 * b09 - a01 * b07 + a02 * b06) * detInv;
-            const c32 = (a31 * b01 - a30 * b03 - a32 * b00) * detInv;
-            const c33 = (a20 * b03 - a21 * b01 + a22 * b00) * detInv;
+    const det = b[0] * b[11] - b[1] * b[10] + b[2] * b[9] + b[3] * b[8] - b[4] * b[7] + b[5] * b[6];
 
-            // biome-ignore format: custom matrix alignment
-            this.data.set([
-                c00, c01, c02, c03,
-                c10, c11, c12, c13,
-                c20, c21, c22, c23,
-                c30, c31, c32, c33
-            ]);
+    if (Math.abs(det) < 1e-10) {
+        throw new Error('Matrix is not invertible (determinant is zero)');
+    }
 
-            return this;
-        }
-    };
+    const detInv = 1 / det;
+
+    // biome-ignore format: custom matrix alignment
+    t.set([
+        (m[5] * b[11] - m[6] * b[10] + m[7] * b[9]) * detInv,
+        (m[2] * b[10] - m[1] * b[11] - m[3] * b[9]) * detInv,
+        (m[13] * b[5] - m[14] * b[4] + m[15] * b[3]) * detInv,
+        (m[10] * b[4] - m[9] * b[5] - m[11] * b[3]) * detInv,
+
+        (m[6] * b[8] - m[4] * b[11] - m[7] * b[7]) * detInv,
+        (m[0] * b[11] - m[2] * b[8] + m[3] * b[7]) * detInv,
+        (m[14] * b[2] - m[12] * b[5] - m[15] * b[1]) * detInv,
+        (m[8] * b[5] - m[10] * b[2] + m[11] * b[1]) * detInv,
+
+        (m[4] * b[10] - m[5] * b[8] + m[7] * b[6]) * detInv,
+        (m[1] * b[8] - m[0] * b[10] - m[3] * b[6]) * detInv,
+        (m[12] * b[4] - m[13] * b[2] + m[15] * b[0]) * detInv,
+        (m[9] * b[2] - m[8] * b[4] - m[11] * b[0]) * detInv,
+
+        (m[5] * b[7] - m[4] * b[9] - m[6] * b[6]) * detInv,
+        (m[0] * b[9] - m[1] * b[7] + m[2] * b[6]) * detInv,
+        (m[13] * b[1] - m[12] * b[3] - m[14] * b[0]) * detInv,
+        (m[8] * b[3] - m[9] * b[1] + m[10] * b[0]) * detInv
+    ]);
+
+    return t;
+}
+
+export function apply(m: Float32Array, v: Float32Array, dst?: Float32Array) {
+    const t = dst || new Float32Array(4);
+    // biome-ignore format: custom matrix alignment
+    t.set([
+        v[0] * m[0] + v[1] * m[4] + v[2] * m[ 8] + v[3] * m[12],
+        v[0] * m[1] + v[1] * m[5] + v[2] * m[ 9] + v[3] * m[13],
+        v[0] * m[2] + v[1] * m[6] + v[2] * m[10] + v[3] * m[14],
+        v[0] * m[3] + v[1] * m[7] + v[2] * m[11] + v[3] * m[15],
+    ]);
+    return t;
+}
+
+export function rotateX(m: Float32Array, rd: number, dst?: Float32Array) {
+    return multiply(m, rotationX(rd), dst);
+}
+
+export function rotateY(m: Float32Array, rd: number, dst?: Float32Array) {
+    return multiply(m, rotationY(rd), dst);
+}
+
+export function rotateZ(m: Float32Array, rd: number, dst?: Float32Array) {
+    return multiply(m, rotationZ(rd), dst);
+}
+
+export function rotate(m: Float32Array, a: Float32Array, rd: number, dst?: Float32Array) {
+    return multiply(m, rotation(a, rd), dst);
+}
+
+export function scale(m: Float32Array, f: Float32Array, dst?: Float32Array) {
+    return multiply(m, scaling(f), dst);
+}
+
+export function translate(m: Float32Array, v: Float32Array, dst?: Float32Array) {
+    return multiply(m, translation(v), dst);
 }

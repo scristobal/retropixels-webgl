@@ -4,11 +4,11 @@ import quadVertexShaderCode from 'shaders/quad.vertex.glsl?raw';
 import spriteFragmentShaderCode from 'shaders/sprite.fragment.glsl?raw';
 import spriteVertexShaderCode from 'shaders/sprite.vertex.glsl?raw';
 import { inputHandler } from 'src/input';
-import { m4 } from 'src/m4';
 import { createMovement } from 'src/movement';
 import { screenManager } from 'src/screen';
 import { spriteSheet } from 'src/sprites';
 import { timeTrack } from 'src/time';
+import { identity, inverse, multiply, perspective, rotate, scale, translate } from './m4';
 
 function createProgram(gl: WebGL2RenderingContext, vertexShaderCode: string, fragmentShaderCode: string) {
     const vertexShader = gl.createShader(gl.VERTEX_SHADER)!;
@@ -190,25 +190,18 @@ async function renderer(canvasElement: HTMLCanvasElement) {
         const invCameraDistance = (1 - p) / startCameraDistance + p / endCameraDistance;
         p = Math.min(1, p + 0.001);
 
-        // biome-ignore format: matrix pipeoperations
-        const camera = m4()
-            .identity
-            .translate(new Float32Array([0, 0, 1/invCameraDistance]));
+        const camera = identity();
+        translate(camera, new Float32Array([0, 0, 1 / invCameraDistance]), camera);
 
-        const view = camera.inverse.data;
+        const viewProjection = perspective(60, screen.quadRatio, 1, 1000);
+        multiply(viewProjection, inverse(camera), viewProjection);
 
-        // biome-ignore format: matrix pipe operations
-        const viewProjection = m4()
-            .perspective(60, screen.quadRatio, 1, 1000)
-            .multiply(view);
+        const modelMatrix = identity();
+        scale(viewProjection, new Float32Array([34, 34, 1]), modelMatrix);
+        translate(modelMatrix, movement.center, modelMatrix);
+        rotate(modelMatrix, movement.axis, movement.angle, modelMatrix);
 
-        // biome-ignore format: matrix pipe operations
-        const modelMatrix = viewProjection
-            .scale(new Float32Array([34, 34, 1]))
-            .translate(movement.center)
-            .rotate(movement.axis, movement.angle);
-
-        spriteModelTransform = modelMatrix.data;
+        spriteModelTransform = modelMatrix;
         spriteTextureTransform = sprite.transform;
     }
 
