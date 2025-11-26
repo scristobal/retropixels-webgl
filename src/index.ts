@@ -54,7 +54,6 @@ async function renderer(canvasElement: HTMLCanvasElement) {
     const gl = canvasElement.getContext('webgl2');
     if (!gl) throw 'WebGL2 not supported in this browser';
 
-
     const timeTracker = timeTrack();
     const screen = screenManager([320, 200], gl.getParameter(gl.MAX_TEXTURE_SIZE), canvasElement);
 
@@ -73,7 +72,7 @@ async function renderer(canvasElement: HTMLCanvasElement) {
     //  2 - - - 3
     //
     // biome-ignore format: custom matrix alignment
-    const spriteVerticesData = new Float32Array([
+    const spriteVerts = new Float32Array([
     //    x   y   z   u   v
          -1,  1,  0,  0,  0, // 0
           1,  1,  0,  1,  0, // 1
@@ -81,13 +80,15 @@ async function renderer(canvasElement: HTMLCanvasElement) {
           1, -1,  0,  1,  1, // 3
     ]);
     // biome-ignore format: custom matrix alignment
-    const spriteIndicesData = new Uint16Array([
+    const spriteInds = new Uint16Array([
         0, 2, 1, // A
         1, 2, 3, // B
     ]);
 
-    let spriteModelTransform: Float32Array;
-    let spriteTextureTransform: Float32Array;
+    const numSpriteInstances = 20;
+    const spriteModelTransform = new Float32Array(numSpriteInstances * 4 * 4);
+
+    const spriteTextureTransform = new Float32Array(16);
 
     // gl.enable(gl.CULL_FACE);
     // gl.cullFace(gl.BACK);
@@ -96,35 +97,47 @@ async function renderer(canvasElement: HTMLCanvasElement) {
     gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
     // 1st pass program, animated sprite
-    const spriteProgram = createProgram(gl, spriteVertexShaderCode, spriteFragmentShaderCode);
-    gl.useProgram(spriteProgram);
+    const spriteProg = createProgram(gl, spriteVertexShaderCode, spriteFragmentShaderCode);
+    gl.useProgram(spriteProg);
 
-    const spriteVerticesCoordsLocation = gl.getAttribLocation(spriteProgram, 'a_coord');
-    const spriteVerticesTextureCoordsLocation = gl.getAttribLocation(spriteProgram, 'a_texCoord');
+    const spriteCoordsLoc = 0; // gl.getAttribLocation(spriteProg, 'a_coord');
+    const spriteTexCoordsLoc = 1; // gl.getAttribLocation(spriteProg, 'a_texCoord');
+    const spriteModelTransformLoc = 2; // gl.getAttribLocation(spriteProg, 'a_modelTransform');
 
-    const spriteVerticesBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, spriteVerticesBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, spriteVerticesData, gl.STATIC_DRAW);
+    const spriteVertBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, spriteVertBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, spriteVerts, gl.STATIC_DRAW);
 
-    gl.enableVertexAttribArray(spriteVerticesCoordsLocation);
-    gl.vertexAttribPointer(spriteVerticesCoordsLocation, 3, gl.FLOAT, false, 3 * 4 + 2 * 4, 0);
+    gl.enableVertexAttribArray(spriteCoordsLoc);
+    gl.vertexAttribPointer(spriteCoordsLoc, 3, gl.FLOAT, false, (3 + 2) * 4, 0);
 
-    gl.enableVertexAttribArray(spriteVerticesTextureCoordsLocation);
-    gl.vertexAttribPointer(spriteVerticesTextureCoordsLocation, 2, gl.FLOAT, false, 3 * 4 + 2 * 4, 3 * 4);
+    gl.enableVertexAttribArray(spriteTexCoordsLoc);
+    gl.vertexAttribPointer(spriteTexCoordsLoc, 2, gl.FLOAT, false, (3 + 2) * 4, 3 * 4);
 
-    const spriteIndicesBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, spriteIndicesBuffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, spriteIndicesData, gl.STATIC_DRAW);
+    const spriteModelTransformBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, spriteModelTransformBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, numSpriteInstances * 4 * 4 * 4, gl.DYNAMIC_DRAW);
 
-    const spriteModelTransformUniformLocation = gl.getUniformLocation(spriteProgram, 'u_modelTransform');
-    const spriteTextureTransformUniformLocation = gl.getUniformLocation(spriteProgram, 'u_texTransform');
-    const spriteColorTextureUniformLocation = gl.getUniformLocation(spriteProgram, 'u_texColor');
+    // mat4 in WebGL requires to assemble four consecutive vec4
+    for (let i = 0; i < 4; i++) {
+        const loc = spriteModelTransformLoc + i;
+        gl.enableVertexAttribArray(loc);
+        gl.vertexAttribPointer(loc, 4, gl.FLOAT, false, 4 * 4 * 4, i * 4 * 4);
+        gl.vertexAttribDivisor(loc, 1);
+    }
 
-    gl.uniform1i(spriteColorTextureUniformLocation, 0);
+    const spriteIndsBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, spriteIndsBuf);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, spriteInds, gl.STATIC_DRAW);
+
+    const spriteTexTransformLoc = gl.getUniformLocation(spriteProg, 'u_texTransform');
+    const spriteTexColorLoc = gl.getUniformLocation(spriteProg, 'u_texColor');
+
+    gl.uniform1i(spriteTexColorLoc, 0);
 
     gl.activeTexture(gl.TEXTURE0);
-    const spriteTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, spriteTexture);
+    const spriteTex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, spriteTex);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
@@ -132,37 +145,37 @@ async function renderer(canvasElement: HTMLCanvasElement) {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, sprite.sheetSize.width, sprite.sheetSize.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, sprite.imgData);
 
     // 2nd pass program, (low) resolution scaling
-    const quadProgram = createProgram(gl, quadVertexShaderCode, quadFragmentShaderCode);
-    gl.useProgram(quadProgram);
+    const quadProg = createProgram(gl, quadVertexShaderCode, quadFragmentShaderCode);
+    gl.useProgram(quadProg);
 
-    const quadTextureUniformLocation = gl.getUniformLocation(quadProgram, 'u_texColor');
-    const quadDepthTextureUniformLocation = gl.getUniformLocation(quadProgram, 'u_texDepth');
+    const quadTexLoc = gl.getUniformLocation(quadProg, 'u_texColor');
+    const quadTexDepthLoc = gl.getUniformLocation(quadProg, 'u_texDepth');
 
     gl.activeTexture(gl.TEXTURE1);
-    const quadTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, quadTexture);
+    const quadTex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, quadTex);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, screen.render.width, screen.render.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-    gl.uniform1i(quadTextureUniformLocation, 1);
+    gl.uniform1i(quadTexLoc, 1);
 
     gl.activeTexture(gl.TEXTURE2);
-    const depthTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, depthTexture);
+    const depthTex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, depthTex);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT24, screen.render.width, screen.render.height, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT, null);
-    gl.uniform1i(quadDepthTextureUniformLocation, 2);
+    gl.uniform1i(quadTexDepthLoc, 2);
 
     const quadFrameBuffer = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, quadFrameBuffer);
     gl.viewport(0, 0, screen.render.width, screen.render.height);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, quadTexture, 0);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthTexture, 0);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, quadTex, 0);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthTex, 0);
 
     let _resize = false;
 
@@ -175,12 +188,14 @@ async function renderer(canvasElement: HTMLCanvasElement) {
         const viewProjection = camera.viewProjection();
 
         sprite.update(delta);
-        const modelMatrix = scale(viewProjection, sprite.spriteSize);
-        // translate(modelMatrix, movement.center, modelMatrix);
-        // rotate(modelMatrix, movement.axis, movement.angle, modelMatrix);
 
-        spriteModelTransform = modelMatrix;
-        spriteTextureTransform = sprite.transform;
+        for (let i = 0; i < numSpriteInstances; i++) {
+            const m = scale(viewProjection, sprite.spriteSize);
+            translate(m, new Float32Array([0, 0, i * 20]), m);
+            spriteModelTransform.set(m, i * 4 * 4);
+        }
+
+        spriteTextureTransform.set(sprite.transform);
     }
 
     function render() {
@@ -192,12 +207,14 @@ async function renderer(canvasElement: HTMLCanvasElement) {
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        gl.useProgram(spriteProgram);
+        gl.useProgram(spriteProg);
 
-        gl.uniformMatrix4fv(spriteModelTransformUniformLocation, false, spriteModelTransform);
-        gl.uniformMatrix4fv(spriteTextureTransformUniformLocation, false, spriteTextureTransform);
+        gl.bindBuffer(gl.ARRAY_BUFFER, spriteModelTransformBuf);
+        gl.bufferSubData(gl.ARRAY_BUFFER, 0, spriteModelTransform);
 
-        gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+        gl.uniformMatrix4fv(spriteTexTransformLoc, false, spriteTextureTransform);
+
+        gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, numSpriteInstances);
 
         // 2nd pass draw quad on screen
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -206,7 +223,7 @@ async function renderer(canvasElement: HTMLCanvasElement) {
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        gl.useProgram(quadProgram);
+        gl.useProgram(quadProg);
 
         // Bind depth texture instead of color texture
         // gl.activeTexture(gl.TEXTURE1);

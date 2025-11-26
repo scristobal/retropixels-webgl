@@ -1,3 +1,5 @@
+import spriteFragmentShaderCode from 'shaders/sprite.fragment.glsl?raw';
+import spriteVertexShaderCode from 'shaders/sprite.vertex.glsl?raw';
 import { loadImageBitmap, loadImageData } from 'src/image';
 
 type Frame = {
