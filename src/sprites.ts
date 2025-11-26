@@ -53,10 +53,10 @@ export async function spriteSheet(atlas: Atlas) {
 
                 // biome-ignore format: custom matrix alignment
                 this.transform.set([
-                    dx,  0, 0, 0,
-                     0, dy, 0, 0,
-                    tx, ty, 1, 0,
-                     0,  0, 0, 0
+                    dx,  0,  0,  0,
+                     0, dy,  0,  0,
+                    tx, ty,  1,  0,
+                     0,  0,  0,  0
                 ]);
             }
         },
@@ -66,11 +66,11 @@ export async function spriteSheet(atlas: Atlas) {
         },
 
         get _currentSprite() {
-            return this._sprites[this._frames[this._currentFrameName].sprite];
+            return this._sprites[this._currentFrame.sprite];
         },
 
         get spriteSize() {
-            return this._currentSprite.size;
+            return new Float32Array([...this._currentSprite.size, 1.0]);
         },
 
         get sheetSize() {

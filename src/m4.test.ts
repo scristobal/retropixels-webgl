@@ -1,5 +1,5 @@
+import { apply, identity, inverse, multiply, translate } from 'src/m4';
 import { expect, test } from 'vitest';
-import { apply, identity, inverse, multiply, translate } from './m4';
 
 test('identity does nothing', () => {
     const x = new Float32Array([1, 1, 0, 1]);

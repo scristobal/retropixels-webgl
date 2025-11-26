@@ -38,10 +38,10 @@ export function rotationX(rd: number) {
     const s = Math.sin(rd);
     // biome-ignore format: custom matrix alignment
     return new Float32Array([
-        1,  0, 0, 0,
-        0,  c, s, 0,
-        0, -s, c, 0,
-        0,  0, 0, 1
+        1,  0,  0,  0,
+        0,  c,  s,  0,
+        0, -s,  c,  0,
+        0,  0,  0,  1
     ]);
 }
 
@@ -50,10 +50,10 @@ export function rotationY(rd: number) {
     const s = Math.sin(rd);
     // biome-ignore format: custom matrix alignment
     return new Float32Array([
-        c, 0, -s, 0,
-        0, 1,  0, 0,
-        s, 0,  c, 0,
-        0, 0,  0, 1
+        c,  0, -s,  0,
+        0,  1,  0,  0,
+        s,  0,  c,  0,
+        0,  0,  0,  1
     ]);
 }
 
@@ -62,10 +62,10 @@ export function rotationZ(rd: number) {
     const s = Math.sin(rd);
     // biome-ignore format: custom matrix alignment
     return new Float32Array([
-         c, s, 0, 0,
-        -s, c, 0, 0,
-         0, 0, 1, 0,
-         0, 0, 0, 1
+         c,  s,  0,  0,
+        -s,  c,  0,  0,
+         0,  0,  1,  0,
+         0,  0,  0,  1
     ]);
 }
 

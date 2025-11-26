@@ -16,7 +16,7 @@ void main() {
     vec4 texColor = texture(u_texColor, v_texCoord);
 
     // no transparent fragments in depth buffer
-    if (texColor.a == 0.0) discard;
+    // if (texColor.a == 0.0) discard;
 
     v_outColor = texColor;
 }

@@ -4,11 +4,14 @@ A experimental 2D-ish? render engine?, focused on single, raw pixel manipulation
 
 Just experimenting, expect very rough edges. 
 
-[########..] Window resize and aspect ratio
-[#####.....] Low resolution rendering
-[#####.....] Sprite animation system
-[######....] Model position control
-[..........] Camera perspective and control
-[..........] Lighting effects
-[..........] Outlines
-[..........] Particle system
+ Window resize with integer scaling and aspect ratio
+ Low resolution rendering
+ Sprite animation system
+ Model position control
+ Camera perspective
+ Camera position control
+
+ FPS camera control with the Pointer Lock API
+ Lighting effects
+ Outlines
+ Particle system

@@ -3,12 +3,11 @@ import quadFragmentShaderCode from 'shaders/quad.fragment.glsl?raw';
 import quadVertexShaderCode from 'shaders/quad.vertex.glsl?raw';
 import spriteFragmentShaderCode from 'shaders/sprite.fragment.glsl?raw';
 import spriteVertexShaderCode from 'shaders/sprite.vertex.glsl?raw';
-import { inputHandler } from 'src/input';
-import { createMovement } from 'src/movement';
+import { identity, inverse, multiply, perspective, rotate, scale, translate } from 'src/m4';
 import { screenManager } from 'src/screen';
 import { spriteSheet } from 'src/sprites';
 import { timeTrack } from 'src/time';
-import { identity, inverse, multiply, perspective, rotate, scale, translate } from './m4';
+import { createCamera } from './camera';
 
 function createProgram(gl: WebGL2RenderingContext, vertexShaderCode: string, fragmentShaderCode: string) {
     const vertexShader = gl.createShader(gl.VERTEX_SHADER)!;
@@ -55,15 +54,16 @@ async function renderer(canvasElement: HTMLCanvasElement) {
     const gl = canvasElement.getContext('webgl2');
     if (!gl) throw 'WebGL2 not supported in this browser';
 
-    const movement = createMovement({
-        location: { center: [0, 0, 0], speed: [0.002, 0.002, 0.2] },
-        rotation: { axis: [0, 0, 1], angle: 0, speed: 0.01 }
+
+    const timeTracker = timeTrack();
+    const screen = screenManager([320, 200], gl.getParameter(gl.MAX_TEXTURE_SIZE), canvasElement);
+
+    const camera = createCamera(90, 1, 1, 1_000, {
+        location: { center: [0, 0, 100], speed: [0.2, 0.2, 0.2] },
+        rotation: { axis: [0, 1, 0], angle: 0, speed: 0.01 }
     });
 
     const sprite = await spriteSheet(animationData);
-
-    const timeTracker = timeTrack();
-    const screen = screenManager(1, gl.getParameter(gl.MAX_TEXTURE_SIZE), canvasElement);
 
     //
     //  0 - - - 1
@@ -74,11 +74,11 @@ async function renderer(canvasElement: HTMLCanvasElement) {
     //
     // biome-ignore format: custom matrix alignment
     const spriteVerticesData = new Float32Array([
-    //    x   y  z  u  v
-         -1,  1, 0, 0, 0, // 0
-          1,  1, 0, 1, 0, // 1
-         -1, -1, 0, 0, 1, // 2
-          1, -1, 0, 1, 1, // 3
+    //    x   y   z   u   v
+         -1,  1,  0,  0,  0, // 0
+          1,  1,  0,  1,  0, // 1
+         -1, -1,  0,  0,  1, // 2
+          1, -1,  0,  1,  1, // 3
     ]);
     // biome-ignore format: custom matrix alignment
     const spriteIndicesData = new Uint16Array([
@@ -89,7 +89,6 @@ async function renderer(canvasElement: HTMLCanvasElement) {
     let spriteModelTransform: Float32Array;
     let spriteTextureTransform: Float32Array;
 
-    // globals
     // gl.enable(gl.CULL_FACE);
     // gl.cullFace(gl.BACK);
     gl.enable(gl.DEPTH_TEST);
@@ -146,60 +145,39 @@ async function renderer(canvasElement: HTMLCanvasElement) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, screen.quadResolution[0], screen.quadResolution[1], 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, screen.render.width, screen.render.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
     gl.uniform1i(quadTextureUniformLocation, 1);
 
     gl.activeTexture(gl.TEXTURE2);
     const depthTexture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, depthTexture);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT24, screen.quadResolution[0], screen.quadResolution[1], 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT24, screen.render.width, screen.render.height, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT, null);
     gl.uniform1i(quadDepthTextureUniformLocation, 2);
 
     const quadFrameBuffer = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, quadFrameBuffer);
-    gl.viewport(0, 0, screen.canvasResolution[0], screen.canvasResolution[1]);
+    gl.viewport(0, 0, screen.render.width, screen.render.height);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, quadTexture, 0);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthTexture, 0);
 
-    let resize = false;
-
-    const startCameraDistance = 1000;
-    const endCameraDistance = 100;
-    let p = 0;
+    let _resize = false;
 
     function update() {
         const delta = timeTracker();
 
-        resize = screen.needsResize;
+        _resize = screen.needsResize;
 
-        if (inputHandler.right) movement.moveRight(delta);
-        if (inputHandler.left) movement.moveLeft(delta);
-        if (inputHandler.up) movement.moveUp(delta);
-        if (inputHandler.down) movement.moveDown(delta);
-        if (inputHandler.turnRight) movement.rotateClockWise(delta);
-        if (inputHandler.turnLeft) movement.rotateCounterClockWise(delta);
-        if (inputHandler.back) movement.moveBack(delta);
-        if (inputHandler.front) movement.moveFront(delta);
+        camera.update(delta);
+        const viewProjection = camera.viewProjection();
 
         sprite.update(delta);
-
-        const invCameraDistance = (1 - p) / startCameraDistance + p / endCameraDistance;
-        p = Math.min(1, p + 0.001);
-
-        const camera = identity();
-        translate(camera, new Float32Array([0, 0, 1 / invCameraDistance]), camera);
-
-        const viewProjection = perspective(60, screen.quadRatio, 1, 1000);
-        multiply(viewProjection, inverse(camera), viewProjection);
-
-        const modelMatrix = identity();
-        scale(viewProjection, new Float32Array([34, 34, 1]), modelMatrix);
-        translate(modelMatrix, movement.center, modelMatrix);
-        rotate(modelMatrix, movement.axis, movement.angle, modelMatrix);
+        const modelMatrix = scale(viewProjection, sprite.spriteSize);
+        // translate(modelMatrix, movement.center, modelMatrix);
+        // rotate(modelMatrix, movement.axis, movement.angle, modelMatrix);
 
         spriteModelTransform = modelMatrix;
         spriteTextureTransform = sprite.transform;
@@ -208,17 +186,9 @@ async function renderer(canvasElement: HTMLCanvasElement) {
     function render() {
         if (!gl) throw 'Canvas context lost';
 
-        if (resize) {
-            gl.activeTexture(gl.TEXTURE1);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, screen.quadResolution[0], screen.quadResolution[1], 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-
-            gl.activeTexture(gl.TEXTURE2);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT24, screen.quadResolution[0], screen.quadResolution[1], 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT, null);
-        }
-
         // 1st pass draw sprite on quad
         gl.bindFramebuffer(gl.FRAMEBUFFER, quadFrameBuffer);
-        gl.viewport(0, 0, screen.quadResolution[0], screen.quadResolution[1]);
+        gl.viewport(0, 0, screen.render.width, screen.render.width);
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -231,7 +201,8 @@ async function renderer(canvasElement: HTMLCanvasElement) {
 
         // 2nd pass draw quad on screen
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.viewport(0, 0, screen.canvasResolution[0], screen.canvasResolution[1]);
+
+        gl.viewport(screen.viewPort.x, screen.viewPort.y, screen.viewPort.width, screen.viewPort.height);
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 

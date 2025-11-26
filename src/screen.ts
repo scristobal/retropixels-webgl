@@ -4,9 +4,8 @@
  *
  */
 
-export function screenManager(scale: number, maxTextureDimension: number, canvasElement: HTMLCanvasElement) {
-    const canvasResolution = new Float32Array([canvasElement.width, canvasElement.height]);
-    const quadResolution = new Float32Array([canvasResolution[0] / scale, canvasResolution[1] / scale]);
+export function screenManager(resolution: [number, number], maxTextureDimension: number, canvasElement: HTMLCanvasElement) {
+    const canvas = { width: canvasElement.width, height: canvasElement.height };
 
     let resizeFlag = false;
 
@@ -18,37 +17,39 @@ export function screenManager(scale: number, maxTextureDimension: number, canvas
 
             resizeFlag = true;
 
-            canvasResolution[0] = Math.max(1, Math.min(contentBoxSize.inlineSize, maxTextureDimension));
-            canvasResolution[1] = Math.max(1, Math.min(contentBoxSize.blockSize, maxTextureDimension));
+            canvas.width = Math.max(1, Math.min(contentBoxSize.inlineSize, maxTextureDimension));
+            canvas.height = Math.max(1, Math.min(contentBoxSize.blockSize, maxTextureDimension));
         }
     });
 
     observer.observe(canvasElement);
 
     return {
-        scale,
-        canvasResolution,
-        quadResolution,
+        render: { width: resolution[0], height: resolution[1], ratio: resolution[0] / resolution[1] },
 
-        _rescaleQuad() {
-            this.quadResolution = new Float32Array([this.canvasResolution[0] / scale, this.canvasResolution[1] / scale]);
+        get viewPort() {
+            const fx = Math.floor(canvas.width / this.render.width);
+            const fy = Math.floor(canvas.height / this.render.height);
+            const f = Math.max(Math.min(fx, fy), 1);
+
+            const x = (canvas.width - f * this.render.width) / 2;
+            const y = (canvas.height - f * this.render.height) / 2;
+
+            const width = f * this.render.width;
+            const height = f * this.render.height;
+
+            return { x, y, width, height };
         },
 
         get needsResize() {
             if (!resizeFlag) return false;
 
-            this._rescaleQuad();
-
-            canvasElement.width = this.canvasResolution[0];
-            canvasElement.height = this.canvasResolution[1];
+            canvasElement.width = canvas.width;
+            canvasElement.height = canvas.height;
 
             resizeFlag = false;
 
             return true;
-        },
-
-        get quadRatio() {
-            return this.quadResolution[0] / this.quadResolution[1];
         }
     };
 }
