@@ -52,11 +52,10 @@ function createProgram(gl: WebGL2RenderingContext, vertexShaderCode: string, fra
 
 async function renderer(canvas: HTMLCanvasElement) {
     canvas.addEventListener('click', async () => {
-        await canvas.requestPointerLock();
+        await canvas.requestPointerLock({
+            unadjustedMovement: true
+        });
     });
-
-    document.ongotpointercapture = () => console.log('pointer captured on');
-    document.onlostpointercapture = () => console.log('pointer capture off')
 
     const gl = canvas.getContext('webgl2');
     if (!gl) throw 'WebGL2 not supported in this browser';
@@ -64,7 +63,11 @@ async function renderer(canvas: HTMLCanvasElement) {
     const timeTracker = timeTrack();
     const screen = screenManager([320, 200], gl.getParameter(gl.MAX_TEXTURE_SIZE), canvas);
 
-    const camera = createCamera(90, 1, 1, 1_000, [0, 10, -100]);
+    const camera = createCamera(110, 1, 1, 1_000, [0, 10, 500], 0, 0, 0);
+
+    document.onkeydown = camera.registerKey.bind(camera);
+    document.onkeyup = camera.deregisterKey.bind(camera);
+    document.onpointermove = camera.capturePointer.bind(camera);
 
     const sprite = await spriteSheet(animationData);
 
@@ -89,7 +92,7 @@ async function renderer(canvas: HTMLCanvasElement) {
         1, 2, 3, // B
     ]);
 
-    const numSpriteInstances = 20;
+    const numSpriteInstances = 200;
     const spriteModelTransform = new Float32Array(numSpriteInstances * 4 * 4);
 
     const spriteTextureTransform = new Float32Array(16);
@@ -183,6 +186,14 @@ async function renderer(canvas: HTMLCanvasElement) {
 
     let _resize = false;
 
+    const spritePositions: number[][] = [];
+    const spriteSpeed: number[] = [];
+
+    for (let i = 0; i < numSpriteInstances; i++) {
+        spritePositions[i] = [20 - 2 * Math.random() * 20, 200 - 2 * Math.random() * 200];
+        spriteSpeed[i] = 5 * Math.random();
+    }
+
     function update() {
         const delta = timeTracker();
 
@@ -195,7 +206,12 @@ async function renderer(canvas: HTMLCanvasElement) {
 
         for (let i = 0; i < numSpriteInstances; i++) {
             const m = scale(viewProjection, sprite.spriteSize);
-            translate(m, new Float32Array([0, 0, i * 50]), m);
+
+            // spritePositions[i][0] += (1/40 - Math.random()/20);
+            spritePositions[i][1] = (spritePositions[i][1] + Math.random() * spriteSpeed[i]) % 500;
+
+            translate(m, new Float32Array([spritePositions[i][0], 0, spritePositions[i][1]]), m);
+
             spriteModelTransform.set(m, i * 4 * 4);
         }
 
