@@ -3,7 +3,7 @@ import quadFragmentShaderCode from 'shaders/quad.fragment.glsl?raw';
 import quadVertexShaderCode from 'shaders/quad.vertex.glsl?raw';
 import spriteFragmentShaderCode from 'shaders/sprite.fragment.glsl?raw';
 import spriteVertexShaderCode from 'shaders/sprite.vertex.glsl?raw';
-import { identity, inverse, multiply, perspective, rotate, scale, translate } from 'src/m4';
+import { scale, translate } from 'src/homog';
 import { screenManager } from 'src/screen';
 import { spriteSheet } from 'src/sprites';
 import { timeTrack } from 'src/time';
@@ -63,7 +63,7 @@ async function renderer(canvas: HTMLCanvasElement) {
     const timeTracker = timeTrack();
     const screen = screenManager([320, 200], gl.getParameter(gl.MAX_TEXTURE_SIZE), canvas);
 
-    const camera = createCamera(110, 1, 1, 1_000, [0, 10, 500], 0, 0, 0);
+    const camera = createCamera(110, 1, 1, 1_000, [0, 10, 500], [0, 0, 0]);
 
     document.onkeydown = camera.registerKey.bind(camera);
     document.onkeyup = camera.deregisterKey.bind(camera);
@@ -92,7 +92,7 @@ async function renderer(canvas: HTMLCanvasElement) {
         1, 2, 3, // B
     ]);
 
-    const numSpriteInstances = 200;
+    const numSpriteInstances = 20;
     const spriteModelTransform = new Float32Array(numSpriteInstances * 4 * 4);
 
     const spriteTextureTransform = new Float32Array(16);

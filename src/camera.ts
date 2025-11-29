@@ -1,17 +1,18 @@
-import { identity, inverse, multiply, perspective, rotate, translate } from 'src/m4';
+import { inv, identity as matIdentity, mult, perspective, translate } from 'src/homog';
+import { identity, normalize, projectXZ, quat, quatIntoLookTo, quatIntoMatrix, quatIntoRight, quatMult, rotateX, rotateY } from './quats';
 
-const LATERAL_SPEED = 0.4;
-const FORWARDS_SPEED = 0.4;
-const BACKWARDS_SPEED = 0.4;
+const STRAFE_SPEED = 0.4;
+const FORWARD_SPEED = 0.4;
+const BACKWARD_SPEED = 0.4;
+const VERT_SPEED = 0.4;
 
-const MIN_PITCH = (Math.PI * 30) / 180;
+const _MIN_PITCH = (Math.PI * 30) / 180;
+const _MAX_PITCH = (Math.PI * 150) / 180;
 
-export function createCamera(yFov: number, aspect: number, zNear: number, zFar: number, position: number[], yaw: number, pitch: number, roll: number) {
+export function createCamera(yFov: number, aspect: number, zNear: number, zFar: number, position: number[], direction: number[]) {
     return {
         center: new Float32Array(position),
-        yaw: 0,
-        pitch: 0,
-        roll: 0,
+        orientation: quat(direction),
         keys: {
             up: false,
             down: false,
@@ -21,35 +22,37 @@ export function createCamera(yFov: number, aspect: number, zNear: number, zFar: 
             back: false
         },
         viewProjection() {
-            const camera = translate(identity(), this.center);
+            const camera = translate(matIdentity(), this.center);
 
-            rotate(camera, new Float32Array([0, -1, 0]), this.yaw, camera);
-            rotate(camera, new Float32Array([-1, 0, 0]), this.pitch, camera);
-            rotate(camera, new Float32Array([0, 0, 1]), this.roll, camera);
+            const rotMat = quatIntoMatrix(this.orientation);
+            const cameraTransform = mult(camera, rotMat);
 
-            const viewProjection = multiply(perspective(yFov, aspect, zNear, zFar), inverse(camera));
+            const viewProjection = mult(perspective(yFov, aspect, zNear, zFar), inv(cameraTransform));
 
             return viewProjection;
         },
         update(dt: number) {
+            const forwardXZ = projectXZ(quatIntoLookTo(this.orientation));
+            const rightXZ = projectXZ(quatIntoRight(this.orientation));
+
             if (this.keys.right) {
-                this.center[0] += Math.cos(this.yaw) * LATERAL_SPEED * dt;
-                this.center[2] += Math.sin(this.yaw) * LATERAL_SPEED * dt;
+                this.center[0] += rightXZ[0] * STRAFE_SPEED * dt;
+                this.center[2] += rightXZ[2] * STRAFE_SPEED * dt;
             }
             if (this.keys.left) {
-                this.center[0] -= Math.cos(this.yaw) * LATERAL_SPEED * dt;
-                this.center[2] -= Math.sin(this.yaw) * LATERAL_SPEED * dt;
+                this.center[0] -= rightXZ[0] * STRAFE_SPEED * dt;
+                this.center[2] -= rightXZ[2] * STRAFE_SPEED * dt;
             }
             if (this.keys.back) {
-                this.center[2] += Math.cos(this.yaw) * BACKWARDS_SPEED * dt;
-                this.center[0] -= Math.sin(this.yaw) * BACKWARDS_SPEED * dt;
+                this.center[0] += forwardXZ[0] * BACKWARD_SPEED * dt;
+                this.center[2] += forwardXZ[2] * BACKWARD_SPEED * dt;
             }
             if (this.keys.front) {
-                this.center[2] -= Math.cos(this.yaw) * FORWARDS_SPEED * dt;
-                this.center[0] += Math.sin(this.yaw) * FORWARDS_SPEED * dt;
+                this.center[0] -= forwardXZ[0] * FORWARD_SPEED * dt;
+                this.center[2] -= forwardXZ[2] * FORWARD_SPEED * dt;
             }
-            if (this.keys.up) this.center[1] += 0.4 * dt;
-            if (this.keys.down) this.center[1] -= 0.4 * dt;
+            if (this.keys.up) this.center[1] += VERT_SPEED * dt;
+            if (this.keys.down) this.center[1] -= VERT_SPEED * dt;
         },
         registerKey(e: KeyboardEvent) {
             switch (e.key) {
@@ -108,9 +111,16 @@ export function createCamera(yFov: number, aspect: number, zNear: number, zFar: 
         capturePointer(e: PointerEvent) {
             // if (!document.pointerLockElement) return
 
-            this.yaw += (0.8 * Math.PI * e.movementX) / 180;
-            this.pitch += (0.8 * Math.PI * e.movementY) / 180;
-            this.pitch = Math.max(Math.min(this.pitch, MIN_PITCH), -MIN_PITCH);
+            const yawDelta = -(0.8 * Math.PI * e.movementX) / 180;
+            const pitchDelta = -(0.8 * Math.PI * e.movementY) / 180;
+
+            const yawQuat = rotateY(yawDelta);
+            quatMult(yawQuat, this.orientation, this.orientation);
+
+            const pitchQuat = rotateX(pitchDelta);
+            quatMult(this.orientation, pitchQuat, this.orientation);
+
+            normalize(this.orientation, this.orientation);
         }
     };
 }

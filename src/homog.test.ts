@@ -1,4 +1,4 @@
-import { apply, identity, inverse, multiply, translate } from 'src/m4';
+import { apply, identity, inv, mult, translate } from 'src/homog';
 import { expect, test } from 'vitest';
 
 test('identity does nothing', () => {
@@ -26,7 +26,7 @@ test('multiply performs correct matrix multiplication', () => {
     // Expected result of A * B
     const expected = new Float32Array([11, 14, 17, 20, 28, 32, 36, 40, 19, 22, 25, 28, 44, 48, 52, 56]);
 
-    const result = multiply(matrixA, matrixB);
+    const result = mult(matrixA, matrixB);
 
     expect(result).toEqual(expected);
 });
@@ -38,7 +38,7 @@ test('inverse produces correct inverse matrix', () => {
     // Expected inverse (computed manually)
     const expectedInverse = new Float32Array([0.5, 0, 0, 0, 0, 1 / 3, 0, 0, 0, 0, 0.25, 0, -2.5, -2, -1.75, 1]);
 
-    const result = inverse(matrix);
+    const result = inv(matrix);
 
     // Check each element is close (accounting for floating point precision)
     for (let i = 0; i < 16; i++) {
@@ -50,8 +50,8 @@ test('inverse times original equals identity', () => {
     // Create a transformation matrix
     const original = new Float32Array([2, 0, 0, 0, 0, 3, 0, 0, 0, 0, 4, 0, 5, 6, 7, 1]);
 
-    const inv = inverse(original);
-    const result = multiply(original, inv);
+    const inverse = inv(original);
+    const result = mult(original, inverse);
 
     // Result should be close to identity
     const identityMatrix = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
