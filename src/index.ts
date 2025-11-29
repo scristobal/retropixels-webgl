@@ -50,17 +50,21 @@ function createProgram(gl: WebGL2RenderingContext, vertexShaderCode: string, fra
     return program;
 }
 
-async function renderer(canvasElement: HTMLCanvasElement) {
-    const gl = canvasElement.getContext('webgl2');
+async function renderer(canvas: HTMLCanvasElement) {
+    canvas.addEventListener('click', async () => {
+        await canvas.requestPointerLock();
+    });
+
+    document.ongotpointercapture = () => console.log('pointer captured on');
+    document.onlostpointercapture = () => console.log('pointer capture off')
+
+    const gl = canvas.getContext('webgl2');
     if (!gl) throw 'WebGL2 not supported in this browser';
 
     const timeTracker = timeTrack();
-    const screen = screenManager([320, 200], gl.getParameter(gl.MAX_TEXTURE_SIZE), canvasElement);
+    const screen = screenManager([320, 200], gl.getParameter(gl.MAX_TEXTURE_SIZE), canvas);
 
-    const camera = createCamera(90, 1, 1, 1_000, {
-        location: { center: [0, 0, 100], speed: [0.2, 0.2, 0.2] },
-        rotation: { axis: [0, 1, 0], angle: 0, speed: 0.01 }
-    });
+    const camera = createCamera(90, 1, 1, 1_000, [0, 10, -100]);
 
     const sprite = await spriteSheet(animationData);
 
@@ -191,7 +195,7 @@ async function renderer(canvasElement: HTMLCanvasElement) {
 
         for (let i = 0; i < numSpriteInstances; i++) {
             const m = scale(viewProjection, sprite.spriteSize);
-            translate(m, new Float32Array([0, 0, i * 20]), m);
+            translate(m, new Float32Array([0, 0, i * 50]), m);
             spriteModelTransform.set(m, i * 4 * 4);
         }
 

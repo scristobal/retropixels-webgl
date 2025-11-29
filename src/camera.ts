@@ -1,66 +1,61 @@
 import { identity, inverse, multiply, perspective, rotate, translate } from 'src/m4';
 
-export function createCamera(yFov: number, aspect: number, zNear: number, zFar: number, state: State) {
-    return {
-        movement: createMovement(state),
+const LATERAL_SPEED = 0.4;
+const FORWARDS_SPEED = 0.4;
+const BACKWARDS_SPEED = 0.4;
+
+export function createCamera(yFov: number, aspect: number, zNear: number, zFar: number, position: number[]) {
+    const camera = {
+        center: new Float32Array(position),
+        yaw: 0,
+        pitch: 0,
+        roll: 0,
+
         viewProjection() {
-            const camera = translate(identity(), this.movement.center);
+            const camera = translate(identity(), this.center);
+
+            // console.log("yaw", this.yaw, "\npitch", this.pitch);
+
+            rotate(camera, new Float32Array([0, -1, 0]), this.yaw, camera);
+            rotate(camera, new Float32Array([-1, 0, 0]), this.pitch, camera);
+            rotate(camera, new Float32Array([0, 0, 1]), this.roll, camera);
+
             const viewProjection = multiply(perspective(yFov, aspect, zNear, zFar), inverse(camera));
-            rotate(viewProjection, this.movement.axis, this.movement.angle, viewProjection);
 
             return viewProjection;
         },
-        update(delta: number) {
-            if (inputHandler.right) this.movement.moveRight(delta);
-            if (inputHandler.left) this.movement.moveLeft(delta);
-            if (inputHandler.up) this.movement.moveUp(delta);
-            if (inputHandler.down) this.movement.moveDown(delta);
-            if (inputHandler.turnRight) this.movement.rotateClockWise(delta);
-            if (inputHandler.turnLeft) this.movement.rotateCounterClockWise(delta);
-            if (inputHandler.back) this.movement.moveBack(delta);
-            if (inputHandler.front) this.movement.moveFront(delta);
+        update(dt: number) {
+            if (inputHandler.right) {
+                this.center[0] += Math.cos(this.yaw) * LATERAL_SPEED * dt;
+                this.center[2] += Math.sin(this.yaw) * LATERAL_SPEED * dt;
+            }
+            if (inputHandler.left) {
+                this.center[0] -= Math.cos(this.yaw) * LATERAL_SPEED * dt;
+                this.center[2] -= Math.sin(this.yaw) * LATERAL_SPEED * dt;
+            }
+            if (inputHandler.back) {
+                this.center[2] += Math.cos(this.yaw) * BACKWARDS_SPEED * dt;
+                this.center[0] -= Math.sin(this.yaw) * BACKWARDS_SPEED * dt;
+            }
+            if (inputHandler.front) {
+                this.center[2] -= Math.cos(this.yaw) * FORWARDS_SPEED * dt;
+                this.center[0] += Math.sin(this.yaw) * FORWARDS_SPEED * dt;
+            }
+            if (inputHandler.up) this.center[1] += 0.4 * dt;
+            if (inputHandler.down) this.center[1] -= 0.4 * dt;
         }
     };
-}
 
-type State = {
-    location: { center: number[]; speed: number[] };
-    rotation: { axis: number[]; angle: number; speed: number };
-};
+    document.addEventListener('mousemove', (e) => {
+        if (document.pointerLockElement === null) return;
 
-export function createMovement(state: State) {
-    return {
-        center: new Float32Array(state.location.center),
-        _speed: new Float32Array(state.location.speed),
-        axis: new Float32Array(state.rotation.axis),
-        angle: state.rotation.angle,
-        _angleSpeed: state.rotation.speed,
+        console.log("movementX:", e.movementX, "movementY:", e.movementY, "screenX:", e.screenX, "screenY:", e.screenY);
 
-        moveRight(dt: number) {
-            this.center[0] += this._speed[0] * dt;
-        },
-        moveLeft(dt: number) {
-            this.center[0] -= this._speed[0] * dt;
-        },
-        moveUp(dt: number) {
-            this.center[1] += this._speed[1] * dt;
-        },
-        moveDown(dt: number) {
-            this.center[1] -= this._speed[1] * dt;
-        },
-        moveBack(dt: number) {
-            this.center[2] += this._speed[2] * dt;
-        },
-        moveFront(dt: number) {
-            this.center[2] -= this._speed[2] * dt;
-        },
-        rotateClockWise(dt: number) {
-            this.angle -= this._angleSpeed * dt;
-        },
-        rotateCounterClockWise(dt: number) {
-            this.angle += this._angleSpeed * dt;
-        }
-    };
+        camera.yaw += (0.8 * Math.PI * e.movementX) / 180;
+        camera.pitch = Math.max(Math.min(camera.pitch + (0.8 * Math.PI * e.movementY) / 180, Math.PI * 30 / 180), - Math.PI * 30 / 180);
+    });
+
+    return camera;
 }
 
 export const inputHandler = {
@@ -68,17 +63,15 @@ export const inputHandler = {
     down: false,
     left: false,
     right: false,
-    turnLeft: false,
-    turnRight: false,
     front: false,
     back: false
 };
 
-window.onkeydown = (e) => {
+document.onkeydown = (e) => {
     switch (e.key) {
         case 'w':
         case 'ArrowUp':
-            inputHandler.up = true;
+            inputHandler.front = true;
             break;
         case 'a':
         case 'ArrowLeft':
@@ -86,32 +79,26 @@ window.onkeydown = (e) => {
             break;
         case 's':
         case 'ArrowDown':
-            inputHandler.down = true;
+            inputHandler.back = true;
             break;
         case 'd':
         case 'ArrowRight':
             inputHandler.right = true;
             break;
-        case 'q':
-            inputHandler.turnLeft = true;
-            break;
-        case 'e':
-            inputHandler.turnRight = true;
-            break;
         case 'r':
-            inputHandler.back = true;
+            inputHandler.up = true;
             break;
         case 'f':
-            inputHandler.front = true;
+            inputHandler.down = true;
             break;
     }
 };
 
-window.onkeyup = (e) => {
+document.onkeyup = (e) => {
     switch (e.key) {
         case 'w':
         case 'ArrowUp':
-            inputHandler.up = false;
+            inputHandler.front = false;
             break;
         case 'a':
         case 'ArrowLeft':
@@ -119,23 +106,17 @@ window.onkeyup = (e) => {
             break;
         case 's':
         case 'ArrowDown':
-            inputHandler.down = false;
+            inputHandler.back = false;
             break;
         case 'd':
         case 'ArrowRight':
             inputHandler.right = false;
             break;
-        case 'q':
-            inputHandler.turnLeft = false;
-            break;
-        case 'e':
-            inputHandler.turnRight = false;
-            break;
         case 'r':
-            inputHandler.back = false;
+            inputHandler.up = false;
             break;
         case 'f':
-            inputHandler.front = false;
+            inputHandler.down = false;
             break;
     }
 };
