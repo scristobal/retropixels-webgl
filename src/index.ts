@@ -7,7 +7,8 @@ import { inv, mult, perspective, scale, translate } from 'src/homog';
 import { screenManager } from 'src/screen';
 import { spriteSheet } from 'src/sprites';
 import { timeTrack } from 'src/time';
-import { capturePointer, createCamera, deregisterKey, registerKey } from './camera';
+import { createCamera } from './camera';
+import { capturePointer, deregisterKey, registerKey } from './control';
 
 function createProgram(gl: WebGL2RenderingContext, vertexShaderCode: string, fragmentShaderCode: string) {
     const vertexShader = gl.createShader(gl.VERTEX_SHADER)!;
