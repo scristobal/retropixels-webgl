@@ -2,6 +2,13 @@
 
 import { mult } from './homog';
 
+type Quaterniom = {
+    w: number,
+    x: number, 
+    y: number, 
+    z: number, 
+}
+
 export function identity() {
     //  w + xi + yj + zk  =  x  y  z  w
     return new Float32Array([0, 0, 0, 1]);
@@ -12,19 +19,11 @@ export function quat(x: number, y: number, z: number) {
     return new Float32Array([x, y, z, 1]);
 }
 
-export function quatMult(a: Float32Array, b: Float32Array, dst?: Float32Array) {
+export function quatMult(rhs: Quaterniom, lhs: Quaterniom, dst?: Float32Array) {
     const q = dst || new Float32Array(4);
 
-    const ax = a[0],
-        ay = a[1],
-        az = a[2],
-        aw = a[3];
-    const bx = b[0],
-        by = b[1],
-        bz = b[2],
-        bw = b[3];
 
-    q[0] = ax * bw + aw * bx + ay * bz - az * by;
+    q[0] = rhs.x * lhs.w + rhs.w * lhs.x + rhs.y * lhs.z - rhs.z * lhs.y;
     q[1] = ay * bw + aw * by + az * bx - ax * bz;
     q[2] = az * bw + aw * bz + ax * by - ay * bx;
     q[3] = aw * bw - ax * bx - ay * by - az * bz;

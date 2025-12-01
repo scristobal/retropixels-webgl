@@ -1,6 +1,6 @@
 import { identity, inv, mult, perspective, translate } from 'src/homog';
 import { angles, keys } from './control';
-import { eulerIntoQuat, normalize, projectXZ, quat, quatIntoLookTo, quatIntoMatrix, quatIntoRight, quatMult, rotate, rotateX, rotateY } from './quats';
+import { eulerIntoQuat, projectXZ, quatIntoLookTo, quatIntoRight, rotate} from './quats';
 
 const STRAFE_SPEED = 0.4;
 const FORWARD_SPEED = 0.4;
