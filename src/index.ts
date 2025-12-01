@@ -3,11 +3,11 @@ import quadFragmentShaderCode from 'shaders/quad.fragment.glsl?raw';
 import quadVertexShaderCode from 'shaders/quad.vertex.glsl?raw';
 import spriteFragmentShaderCode from 'shaders/sprite.fragment.glsl?raw';
 import spriteVertexShaderCode from 'shaders/sprite.vertex.glsl?raw';
-import { scale, translate } from 'src/homog';
+import { inv, mult, perspective, scale, translate } from 'src/homog';
 import { screenManager } from 'src/screen';
 import { spriteSheet } from 'src/sprites';
 import { timeTrack } from 'src/time';
-import { createCamera } from './camera';
+import { capturePointer, createCamera, deregisterKey, registerKey } from './camera';
 
 function createProgram(gl: WebGL2RenderingContext, vertexShaderCode: string, fragmentShaderCode: string) {
     const vertexShader = gl.createShader(gl.VERTEX_SHADER)!;
@@ -63,11 +63,12 @@ async function renderer(canvas: HTMLCanvasElement) {
     const timeTracker = timeTrack();
     const screen = screenManager([320, 200], gl.getParameter(gl.MAX_TEXTURE_SIZE), canvas);
 
-    const camera = createCamera(110, 1, 1, 1_000, [0, 10, 500], [0, 0, 0]);
+    const persp = perspective(110, 1, 1, 1_000);
+    const camera = createCamera(0, 10, 500);
 
-    document.onkeydown = camera.registerKey.bind(camera);
-    document.onkeyup = camera.deregisterKey.bind(camera);
-    document.onpointermove = camera.capturePointer.bind(camera);
+    document.onkeydown = registerKey;
+    document.onkeyup = deregisterKey;
+    document.onpointermove = capturePointer;
 
     const sprite = await spriteSheet(animationData);
 
@@ -199,18 +200,17 @@ async function renderer(canvas: HTMLCanvasElement) {
 
         _resize = screen.needsResize;
 
-        camera.update(delta);
-        const viewProjection = camera.viewProjection();
+        const viewProjection = mult(persp, inv(camera.view(delta)));
 
         sprite.update(delta);
 
         for (let i = 0; i < numSpriteInstances; i++) {
-            const m = scale(viewProjection, sprite.spriteSize);
+            const m = scale(viewProjection, sprite.spriteSize.x, sprite.spriteSize.y, 1);
 
             // spritePositions[i][0] += (1/40 - Math.random()/20);
             spritePositions[i][1] = (spritePositions[i][1] + Math.random() * spriteSpeed[i]) % 500;
 
-            translate(m, new Float32Array([spritePositions[i][0], 0, spritePositions[i][1]]), m);
+            translate(m, spritePositions[i][0], 0, spritePositions[i][1], m);
 
             spriteModelTransform.set(m, i * 4 * 4);
         }

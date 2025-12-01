@@ -7,9 +7,9 @@ export function identity() {
     return new Float32Array([0, 0, 0, 1]);
 }
 
-export function quat(dir: number[]) {
+export function quat(x: number, y: number, z: number) {
     //  w + xi + yj + zk  =  x  y  z  w
-    return new Float32Array([...dir, 1]);
+    return new Float32Array([x, y, z, 1]);
 }
 
 export function quatMult(a: Float32Array, b: Float32Array, dst?: Float32Array) {
@@ -162,10 +162,15 @@ export function eulerRotate(m: Float32Array, yaw: number, pitch: number, roll: n
     return mult(m, rotMat, dst);
 }
 
-export function rotate(m: Float32Array, axis: Float32Array, angle: number, dst?: Float32Array) {
+export function axisAndAngleRotate(m: Float32Array, axis: Float32Array, angle: number, dst?: Float32Array) {
     const q = axisAndAngleToQuat(axis, angle);
     const rotMat = quatIntoMatrix(q);
     return mult(m, rotMat, dst);
+}
+
+export function rotate(m: Float32Array, quat: Float32Array, dst?: Float32Array) {
+    const rotation = quatIntoMatrix(quat);
+    return mult(m, rotation, dst);
 }
 
 export function rotateX(angle: number, dst?: Float32Array) {

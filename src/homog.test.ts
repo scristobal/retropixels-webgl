@@ -10,8 +10,7 @@ test('identity does nothing', () => {
 
 test('translate moves point by offset', () => {
     const point = new Float32Array([1, 2, 3, 1]);
-    const translation = new Float32Array([5, 10, 15]);
-    const result = apply(translate(identity(), translation), point);
+    const result = apply(translate(identity(), 5, 10, 15), point);
 
     expect(result).toEqual(new Float32Array([6, 12, 18, 1]));
 });

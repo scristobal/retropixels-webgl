@@ -122,38 +122,50 @@ export function apply(m: Float32Array, v: Float32Array, dst?: Float32Array) {
     return t;
 }
 
-export function _rotate(m: Float32Array, a: Float32Array, rd: number, dst?: Float32Array) {
-    const c = Math.cos(rd);
-    const s = Math.sin(rd);
+export function _rotate(m: Float32Array, axis: Float32Array, angle: number, dst?: Float32Array) {
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
 
     // biome-ignore format: custom matrix alignment
     const rotationMatrix = new Float32Array([
-        a[0] * a[0] * (1 - c) + c,        a[0] * a[1] * (1 - c) + a[2] * s, a[0] * a[2] * (1 - c) - a[1] * s, 0,
-        a[0] * a[1] * (1 - c) - a[2] * s, a[1] * a[1] * (1 - c) + c,        a[1] * a[2] * (1 - c) + a[0] * s, 0,
-        a[0] * a[2] * (1 - c) + a[1] * s, a[1] * a[2] * (1 - c) - a[0] * s, a[2] * a[2] * (1 - c) + c,        0,
-        0,                                0,                                0,                                1
+        axis[0] * axis[0] * (1 - cos) + cos,
+        axis[0] * axis[1] * (1 - cos) + axis[2] * sin,
+        axis[0] * axis[2] * (1 - cos) - axis[1] * sin,
+        0,
+
+        axis[0] * axis[1] * (1 - cos) - axis[2] * sin,
+        axis[1] * axis[1] * (1 - cos) + cos,
+        axis[1] * axis[2] * (1 - cos) + axis[0] * sin, 
+        0,
+
+        axis[0] * axis[2] * (1 - cos) + axis[1] * sin,
+        axis[1] * axis[2] * (1 - cos) - axis[0] * sin,
+        axis[2] * axis[2] * (1 - cos) + cos,
+        0,
+
+        0, 0, 0, 1
     ]);
     return mult(m, rotationMatrix, dst);
 }
 
-export function scale(m: Float32Array, f: Float32Array, dst?: Float32Array) {
+export function scale(m: Float32Array, x: number, y: number, z: number, dst?: Float32Array) {
     // biome-ignore format: custom matrix alignment
     const scalingMatrix = new Float32Array([
-        f[0],    0,    0,    0,
-           0, f[1],    0,    0,
-           0,    0, f[2],    0,
-           0,    0,    0,    1
+        x, 0, 0, 0,
+        0, y, 0, 0,
+        0, 0, z, 0,
+        0, 0, 0, 1
     ]);
     return mult(m, scalingMatrix, dst);
 }
 
-export function translate(m: Float32Array, v: Float32Array, dst?: Float32Array) {
+export function translate(m: Float32Array, x: number, y: number, z: number, dst?: Float32Array) {
     // biome-ignore format: custom matrix alignment
     const translationMatrix = new Float32Array([
-           1,    0,    0,    0,
-           0,    1,    0,    0,
-           0,    0,    1,    0,
-        v[0], v[1], v[2],    1
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        x, y, z, 1
     ]);
     return mult(m, translationMatrix, dst);
 }

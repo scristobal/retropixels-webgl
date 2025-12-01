@@ -72,7 +72,7 @@ export async function spriteSheet(atlas: Atlas) {
         },
 
         get spriteSize() {
-            return new Float32Array([...this._currentSprite.size, 1.0]);
+            return { x: this._currentSprite.size[0], y: this._currentSprite.size[1] };
         },
 
         get sheetSize() {
