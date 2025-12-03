@@ -64,7 +64,7 @@ async function renderer(canvas: HTMLCanvasElement) {
     const timeTracker = timeTrack();
     const screen = screenManager([320, 200], gl.getParameter(gl.MAX_TEXTURE_SIZE), canvas);
 
-    const persp = perspective(110, 1, 1, 1_000);
+    const projection = perspective(110, 1, 1, 1_000);
     const camera = createCamera(0, 10, 500);
 
     document.onkeydown = registerKey;
@@ -201,7 +201,8 @@ async function renderer(canvas: HTMLCanvasElement) {
 
         _resize = screen.needsResize;
 
-        const viewProjection = mult(persp, inv(camera.view(delta)));
+        const view = inv(camera.view(delta));
+        const viewProjection = mult(projection, view);
 
         sprite.update(delta);
 

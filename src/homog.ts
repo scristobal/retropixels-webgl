@@ -10,7 +10,7 @@ export function identity() {
     ]);
 }
 
-export function projection(width: number, height: number, depth: number) {
+export function ortho(width: number, height: number, depth: number) {
     // biome-ignore format: custom matrix alignment
     return new Float32Array([
         2 / width,           0,         0, 0,
@@ -135,7 +135,7 @@ export function _rotate(m: Float32Array, axis: Float32Array, angle: number, dst?
 
         axis[0] * axis[1] * (1 - cos) - axis[2] * sin,
         axis[1] * axis[1] * (1 - cos) + cos,
-        axis[1] * axis[2] * (1 - cos) + axis[0] * sin, 
+        axis[1] * axis[2] * (1 - cos) + axis[0] * sin,
         0,
 
         axis[0] * axis[2] * (1 - cos) + axis[1] * sin,
