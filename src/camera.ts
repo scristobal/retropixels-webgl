@@ -1,5 +1,5 @@
 import { angles, keys } from 'src/control';
-import { identity, inv, mult, perspective, translate } from 'src/mat4';
+import { identity, translate } from 'src/mat4';
 import { eulerIntoQuat, projectXZ, quatIntoLookTo, quatIntoRight, rotate } from 'src/quaternions';
 
 const STRAFE_SPEED = 0.4;
@@ -11,13 +11,14 @@ const _MIN_PITCH = (Math.PI * 30) / 180;
 const _MAX_PITCH = (Math.PI * 150) / 180;
 
 export function createCamera(x: number, y: number, z: number) {
-    return {
+    return Object.freeze({
+        _data: new Float32Array(16),
         center: { x, y, z },
         view(dt: number) {
-            const quat = eulerIntoQuat(angles.yaw, 0, angles.pitch);
+            const q = eulerIntoQuat(angles.yaw, 0, angles.pitch);
 
-            const forwardXZ = projectXZ(quatIntoLookTo(quat));
-            const rightXZ = projectXZ(quatIntoRight(quat));
+            const forwardXZ = projectXZ(quatIntoLookTo(q));
+            const rightXZ = projectXZ(quatIntoRight(q));
 
             if (keys.right) {
                 this.center.x += rightXZ[0] * STRAFE_SPEED * dt;
@@ -38,11 +39,11 @@ export function createCamera(x: number, y: number, z: number) {
             if (keys.up) this.center.y += VERT_SPEED * dt;
             if (keys.down) this.center.y -= VERT_SPEED * dt;
 
-            const camera = identity();
-            translate(camera, this.center.x, this.center.y, this.center.z, camera);
-            rotate(camera, quat, camera);
+            identity(this._data);
+            translate(this._data, this.center.x, this.center.y, this.center.z, this._data);
+            rotate(this._data, q, this._data);
 
-            return camera;
+            return this._data;
         }
-    };
+    });
 }

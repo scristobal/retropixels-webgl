@@ -1,36 +1,48 @@
 /// 3-dim homogeneus matrix operations
 
-export function identity() {
+export function identity(dst?: Float32Array) {
+    const t = dst || new Float32Array(16);
+
     // biome-ignore format: custom matrix alignment
-    return new Float32Array([
+    t.set([
         1, 0, 0, 0,
         0, 1, 0, 0,
         0, 0, 1, 0,
         0, 0, 0, 1
     ]);
+
+    return t;
 }
 
-export function ortho(width: number, height: number, depth: number) {
+export function ortho(width: number, height: number, depth: number, dst?: Float32Array) {
+    const t = dst || new Float32Array(16);
+
     // biome-ignore format: custom matrix alignment
-    return new Float32Array([
+    t.set([
         2 / width,           0,         0, 0,
                 0, -2 / height,         0, 0,
                 0,           0, 2 / depth, 0,
                -1,           1,         0, 1
     ]);
+
+    return t;
 }
 
-export function perspective(yFov: number, aspect: number, zNear: number, zFar: number) {
+export function perspective(yFov: number, aspect: number, zNear: number, zFar: number, dst?: Float32Array) {
+    const t = dst || new Float32Array(16);
+
     const f = Math.tan(0.5 * (Math.PI - (yFov * Math.PI) / 180));
     const rInv = 1 / (zNear - zFar);
 
     // biome-ignore format: custom matrix alignment
-    return new Float32Array([
+    t.set([
         f / aspect, 0,                       0,  0,
                  0, f,                       0,  0,
                  0, 0,   (zNear + zFar) * rInv, -1,
                  0, 0, 2 * zNear * zFar * rInv,  0
     ]);
+
+    return t;
 }
 
 export function mult(lhs: Float32Array, rhs: Float32Array, dst?: Float32Array) {
