@@ -1,4 +1,4 @@
-import { apply, identity, inv, mult, translate } from 'src/homog';
+import { apply, identity, inv, mult, translate } from 'src/mat4';
 import { expect, test } from 'vitest';
 
 test('identity does nothing', () => {

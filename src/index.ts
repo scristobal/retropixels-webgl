@@ -3,12 +3,12 @@ import quadFragmentShaderCode from 'shaders/quad.fragment.glsl?raw';
 import quadVertexShaderCode from 'shaders/quad.vertex.glsl?raw';
 import spriteFragmentShaderCode from 'shaders/sprite.fragment.glsl?raw';
 import spriteVertexShaderCode from 'shaders/sprite.vertex.glsl?raw';
-import { inv, mult, perspective, scale, translate } from 'src/homog';
+import { createCamera } from 'src/camera';
+import { capturePointer, deregisterKey, registerKey } from 'src/control';
+import { inv, mult, perspective, scale, translate } from 'src/mat4';
 import { screenManager } from 'src/screen';
 import { spriteSheet } from 'src/sprites';
 import { timeTrack } from 'src/time';
-import { createCamera } from './camera';
-import { capturePointer, deregisterKey, registerKey } from './control';
 
 function createProgram(gl: WebGL2RenderingContext, vertexShaderCode: string, fragmentShaderCode: string) {
     const vertexShader = gl.createShader(gl.VERTEX_SHADER)!;

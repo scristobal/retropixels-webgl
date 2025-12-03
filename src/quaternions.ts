@@ -1,6 +1,6 @@
 /// Rotation using quaternions
 
-import { mult } from './homog';
+import { mult } from 'src/mat4';
 
 export function identity() {
     //  w + xi + yj + zk  =  x  y  z  w
