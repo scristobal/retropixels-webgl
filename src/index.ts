@@ -188,9 +188,9 @@ async function renderer(canvas: HTMLCanvasElement) {
 
     let _resize = false;
 
+    // initialize the sprite positions and speeds
     const spritePositions: number[][] = [];
     const spriteSpeed: number[] = [];
-
     for (let i = 0; i < numSpriteInstances; i++) {
         spritePositions[i] = [20 - 2 * Math.random() * 20, 200 - 2 * Math.random() * 200];
         spriteSpeed[i] = 5 * Math.random();
@@ -206,15 +206,15 @@ async function renderer(canvas: HTMLCanvasElement) {
 
         sprite.update(delta);
 
+        // update the sprite positions
         for (let i = 0; i < numSpriteInstances; i++) {
-            const m = scale(viewProjection, sprite.spriteSize.x, sprite.spriteSize.y, 1);
-
-            // spritePositions[i][0] += (1/40 - Math.random()/20);
             spritePositions[i][1] = (spritePositions[i][1] + Math.random() * spriteSpeed[i]) % 500;
+        }
 
+        for (let i = 0; i < numSpriteInstances; i++) {
+            const m = spriteModelTransform.subarray(i * 4 * 4, (i + 1) * 4 * 4);
+            scale(viewProjection, sprite.spriteSize.x, sprite.spriteSize.y, 1, m);
             translate(m, spritePositions[i][0], 0, spritePositions[i][1], m);
-
-            spriteModelTransform.set(m, i * 4 * 4);
         }
 
         spriteTextureTransform.set(sprite.transform);
