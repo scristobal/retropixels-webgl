@@ -1,4 +1,3 @@
-/// <reference types="vitest/config" />
 import * as child from 'node:child_process';
 import { defineConfig } from 'vite';
 
@@ -9,6 +8,6 @@ export default defineConfig({
     define: { 'import.meta.env.VITE_APP_VERSION': JSON.stringify(commitHash) },
     build: { target: 'esnext', minify: false },
     resolve: {
-        tsconfigPaths: true 
-    } 
+        tsconfigPaths: true
+    }
 });
