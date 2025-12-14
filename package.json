@@ -5,8 +5,8 @@
     "version": "0.0.1",
     "devDependencies": {
         "@biomejs/biome": "2.3.8",
-        "@typescript/native-preview": "^7.0.0-dev.20251203.1",
-        "@webgpu/types": "^0.1.67",
+        "@typescript/native-preview": "^7.0.0-dev.20251214.1",
+        "@webgpu/types": "^0.1.68",
         "vite": "^8.0.0-beta.0"
     },
     "scripts": {
