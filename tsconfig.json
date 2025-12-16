@@ -30,7 +30,7 @@
         "sourceMap": true,
         "strict": true,
         "target": "esnext",
-        "types": ["@webgpu/types", "vite/client"],
+        "types": ["vite/client"],
         "paths": { "*": ["./*"] }
     },
     "exclude": ["node_modules", "lib"],
